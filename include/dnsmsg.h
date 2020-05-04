@@ -56,7 +56,7 @@ ParseMessage(
 
 const char *TypeToString(uint16_t type);
 const char *ClassToString(uint16_t cl);
-const char *ResponseCodeToString(unsigned response);
+const char *ResponseCodeToString(unsigned char response);
 
 // returns the offset to the piece after the string
 int

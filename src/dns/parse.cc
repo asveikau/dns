@@ -428,7 +428,7 @@ dns::ClassToString(uint16_t cl)
 }
 
 const char *
-dns::ResponseCodeToString(unsigned response)
+dns::ResponseCodeToString(unsigned char response)
 {
    switch ((ResponseCode)response)
    {

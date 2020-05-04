@@ -47,20 +47,20 @@ public:
 struct MessageHeader
 {
    I16 Id;
-   unsigned RecursionDesired : 1;
-   unsigned Truncated : 1;
-   unsigned Authoritative : 1;
-   unsigned Opcode : 4;
-   unsigned Response : 1;
-   unsigned ResponseCode : 4;
-   unsigned Reserved : 3;
-   unsigned RecursionAvailable : 1;
+   unsigned char RecursionDesired : 1;
+   unsigned char Truncated : 1;
+   unsigned char Authoritative : 1;
+   unsigned char Opcode : 4;
+   unsigned char Response : 1;
+   unsigned char ResponseCode : 4;
+   unsigned char Reserved : 3;
+   unsigned char RecursionAvailable : 1;
    I16 QuestionCount;
    I16 AnswerCount;
    I16 AuthorityNameCount;
    I16 AdditionalRecordCount;
 
-   MessageHeader() { memset(this, 0, sizeof(*this)); }
+   //MessageHeader() { memset(this, 0, sizeof(*this)); }
 };
 
 struct RecordAttrs
