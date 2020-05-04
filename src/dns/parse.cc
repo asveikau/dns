@@ -441,4 +441,5 @@ dns::ResponseCodeToString(unsigned response)
       CODE(Refused);
 #undef CODE
    }
+   return nullptr;
 }

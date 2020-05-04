@@ -6,9 +6,10 @@
  copyright notice and this permission notice appear in all copies.
 */
 
-#include <common/logger.h>
-#include <pollster/pollster.h>
 #include <pollster/socket.h>
+#include <pollster/pollster.h>
+
+#include <common/logger.h>
 
 #include <dnsserver.h>
 

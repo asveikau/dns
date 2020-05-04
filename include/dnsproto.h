@@ -15,6 +15,10 @@
 
 #include <stdint.h>
 
+#if defined(_WINDOWS)
+#undef IN
+#endif
+
 namespace dns {
 #pragma pack(push, 1)
 

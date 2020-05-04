@@ -6,8 +6,8 @@
  copyright notice and this permission notice appear in all copies.
 */
 
-#include <pollster/pollster.h>
 #include <pollster/socket.h>
+#include <pollster/pollster.h>
 
 #include <dnsserver.h>
 #include <dnsproto.h>
