@@ -53,7 +53,7 @@ struct MessageHeader
    unsigned Opcode : 4;
    unsigned Response : 1;
    unsigned ResponseCode : 4;
-   unsigned Reserved : 1;
+   unsigned Reserved : 3;
    unsigned RecursionAvailable : 1;
    I16 QuestionCount;
    I16 AnswerCount;
