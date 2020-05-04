@@ -4,7 +4,9 @@ all: all-phony
 CFLAGS += -O2 -Wall
 WINDOWS_SUBSYSTEM=console
 
-LIBPOLLSTER_ROOT?=../player/submodules/pollster/
+MAKEFILES_ROOT?=submodules/makefiles/
+LIBCOMMON_ROOT?=submodules/common/
+LIBPOLLSTER_ROOT?=submodules/pollster/
 -include ${LIBPOLLSTER_ROOT}Makefile.inc
 CFLAGS += -Iinclude -I$(LIBCOMMON_ROOT)include -I$(LIBPOLLSTER_ROOT)include
 CXXFLAGS += $(CFLAGS)
