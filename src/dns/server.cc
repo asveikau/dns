@@ -45,7 +45,7 @@ exit:;
    return;
 errorReply:
    error_clear(err);
-   if (len > 2)
+   if (len > 2 && (len < 3 || !((MessageHeader*)buf)->Response))
    {
       MessageHeader repl;
 
