@@ -26,6 +26,7 @@ dns::Server::StartTcp(error *err)
             dns::Server* srv;
             std::shared_ptr<pollster::StreamSocket> fd;
             std::vector<char> bufferedBytes;
+            ResponseMap map;
          };
          std::shared_ptr<State> state;
          try
@@ -72,6 +73,8 @@ dns::Server::StartTcp(error *err)
 
                state->srv->HandleMessage(
                   (char*)p+2, plen,
+                  nullptr,
+                  state->map,
                   [state] (const void *buf, size_t len, error *err) -> void
                   {
                      auto fd = state->fd;

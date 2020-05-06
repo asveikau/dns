@@ -14,12 +14,13 @@
 void
 dns::Server::HandleMessage(
    void *buf, size_t len,
+   const struct sockaddr *addr,
+   ResponseMap &map,
    const std::function<void(const void *, size_t, error *)> &reply,
    error *err
 )
 {
    Message msg;
-   char msgbuf[4096];
    ResponseCode rc = ResponseCode::ServerFailure;
 
    ParseMessage(buf, len, &msg, err);
@@ -29,16 +30,24 @@ dns::Server::HandleMessage(
       goto errorReply;
    }
 
-   log_printf("Incoming message:\n%s", msg.Describe(msgbuf, sizeof(msgbuf)));
+   {
+      char msgbuf[4096];
+      log_printf("Incoming message:\n%s", msg.Describe(msgbuf, sizeof(msgbuf)));
+   }
+
+   if (msg.Header->Response)
+   {
+      map.OnResponse(msg.Header->Id.Get(), addr, buf, len, msg, err);
+      return;
+   }
 
    // Several DNS servers reject more than one question per packet.
    //
-   if (!msg.Header->Response && msg.Header->QuestionCount.Get() != 1)
+   if (msg.Header->QuestionCount.Get() != 1)
    {
       rc = ResponseCode::FormatError;
       goto errorReply;
    }
-
 
 exit:;
    if (ERROR_FAILED(err))
@@ -57,4 +66,6 @@ errorReply:
       reply(&repl, sizeof(repl), err);
       error_clear(err);
    }
+   if (len >= 3 && ((MessageHeader*)buf)->Response)
+      map.OnNoResponse(((MessageHeader*)buf)->Id.Get(), addr);
 }

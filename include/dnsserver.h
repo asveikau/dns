@@ -20,9 +20,43 @@ struct sockaddr;
 
 namespace dns {
 
+struct Message;
+
+struct ResponseMap
+{
+   void
+   OnResponse(
+      uint16_t id,
+      const struct sockaddr *,
+      const void *buf,
+      size_t len,
+      Message &msg,
+      error *err
+   ) {}
+
+   void
+   OnNoResponse(uint16_t id, const struct sockaddr *) {}
+
+   typedef std::function<void(
+      const void *buf,
+      size_t len,
+      Message &msg,
+      error *err)
+   > Callback;
+
+   void
+   OnRequest(
+      uint16_t id,
+      const struct sockaddr *addr,
+      const Callback &cb,
+      error *err
+   ) {}
+};
+
 class Server
 {
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
+   ResponseMap udpResp, udp6Resp;
 
    void
    SendUdp(
@@ -32,11 +66,12 @@ class Server
       size_t len,
       error *err
    );
-
 protected:
    void
    HandleMessage(
       void *buf, size_t len,
+      const struct sockaddr *addr,
+      ResponseMap &map,
       const std::function<void(const void *, size_t, error *)> &reply,
       error *err
   );
@@ -48,7 +83,7 @@ public:
    StartTcp(error *err);
 
    void
-   SendUdp(const struct sockaddr *addr, const void *buf, size_t len, error *err);
+   SendUdp(const struct sockaddr *addr, const void *buf, size_t len, const ResponseMap::Callback &cb, error *err);
 };
 
 } // end namespace

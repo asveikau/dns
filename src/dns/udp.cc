@@ -27,6 +27,7 @@ dns::Server::StartUdp(int af, error *err)
       struct sockaddr_in6 sin6;
    };
    u_addr addr;
+   ResponseMap *map = nullptr;
 
    memset(&addr, 0, sizeof(addr));
 
@@ -52,9 +53,11 @@ dns::Server::StartUdp(int af, error *err)
    {
    case AF_INET:
       addr.sin.sin_port = htons(53);
+      map = &udpResp;
       break;
    case AF_INET6:
       addr.sin6.sin6_port = htons(53);
+      map = &udp6Resp;
       break;
    }
 
@@ -76,9 +79,9 @@ dns::Server::StartUdp(int af, error *err)
    loop->add_socket(
       fd,
       false,
-      [fd, this] (pollster::socket_event *sev, error *err) -> void
+      [fd, map, this] (pollster::socket_event *sev, error *err) -> void
       {
-         sev->on_signal = [fd, this] (error *err) -> void
+         sev->on_signal = [fd, map, this] (error *err) -> void
          {
             char buf[512];
             u_addr addr;
@@ -94,6 +97,8 @@ dns::Server::StartUdp(int af, error *err)
             {
                HandleMessage(
                   buf, r,
+                  &addr.sa,
+                  *map,
                   [fd, addr, this] (const void *buf, size_t len, error *err) -> void
                   {
                      SendUdp(fd, &addr.sa, buf, len, err);
@@ -141,25 +146,33 @@ dns::Server::SendUdp(
    const struct sockaddr *addr,
    const void *buf,
    size_t len,
+   const ResponseMap::Callback &cb,
    error *err
 )
 {
    std::shared_ptr<common::SocketHandle> *fdp = nullptr;
+   ResponseMap *mapp = nullptr;
    switch (addr->sa_family)
    {
    case AF_INET:
       fdp = &udpSocket;
+      mapp = &udpResp;
       break;
    case AF_INET6:
       fdp = &udp6Socket;
+      mapp = &udp6Resp;
       break;
    default:
       error_set_unknown(err, "Invalid family");
       return;
    }
    auto &fd = *fdp;
+   auto &map = *mapp;
    if (!fd->Valid())
       ERROR_SET(err, unknown, "TODO: set up new socket");
    SendUdp(fd, addr, buf, len, err);
+   ERROR_CHECK(err);
+   if (cb)
+      map.OnRequest(((MessageHeader*)buf)->Id.Get(), addr, cb, err);
 exit:;
 }
