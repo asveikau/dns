@@ -29,6 +29,14 @@ dns::Server::HandleMessage(
       goto errorReply;
    }
 
+   // Several DNS servers reject more than one question per packet.
+   //
+   if (msg.Header.QuestionCount.Get() != 1)
+   {
+      rc = ResponseCode::FormatError;
+      goto errorReply;
+   }
+
    log_printf("Request:\n%s", msg.Describe(msgbuf, sizeof(msgbuf)));
 
 exit:;
