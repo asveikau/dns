@@ -94,6 +94,4 @@ errorReply:
       reply(&repl, sizeof(repl), err);
       error_clear(err);
    }
-   if (len >= 3 && ((MessageHeader*)buf)->Response)
-      map.OnNoResponse(((MessageHeader*)buf)->Id.Get(), addr);
 }

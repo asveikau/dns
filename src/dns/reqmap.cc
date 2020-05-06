@@ -31,14 +31,6 @@ dns::ResponseMap::OnResponse(
    }
 }
 
-void
-dns::ResponseMap::OnNoResponse(uint16_t id, const struct sockaddr *addr)
-{
-   auto res = Lookup(id, addr);
-   if (res)
-      map.erase(id);
-}
-
 static bool
 ParseAddr(const struct sockaddr *addr, int &off, size_t &len)
 {

@@ -31,9 +31,6 @@ public:
       error *err
    );
 
-   void
-   OnNoResponse(uint16_t id, const struct sockaddr *);
-
    typedef std::function<void(
       const void *buf,
       size_t len,
