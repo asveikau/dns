@@ -344,12 +344,19 @@ dns::Message::Describe(char *buf, size_t len)
 
          append_printf("%s: [%s]", label, rec->Name.c_str()); //, type %d, ttl %d, %d bytes",
 
-         append_printf(", type");
+         append_printf(", type ");
          p = TypeToString(rec->Attrs->Type.Get());
          if (p)
             append_printf("%s", p);
          else
             append_printf("%.4x", rec->Attrs->Type.Get());
+
+         append_printf(", class ");
+         p = ClassToString(rec->Attrs->Class.Get());
+         if (p)
+            append_printf("%s", p);
+         else
+            append_printf("%.4x", rec->Attrs->Class.Get());
 
          append_printf(
             ", ttl %d, %d bytes\n",

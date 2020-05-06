@@ -66,6 +66,7 @@ struct MessageHeader
 struct RecordAttrs
 {
    I16 Type;
+   I16 Class;
    I32 Ttl;
    I16 Length;
    char Data[];
