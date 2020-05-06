@@ -39,6 +39,31 @@ dns::ResponseMap::OnNoResponse(uint16_t id, const struct sockaddr *addr)
       map.erase(id);
 }
 
+static bool
+ParseAddr(const struct sockaddr *addr, int &off, size_t &len)
+{
+   if (!addr)
+   {
+   fail:
+      len = off = 0;
+      return false;
+   }
+   switch (addr->sa_family)
+   {
+   case AF_INET:
+      off = offsetof(sockaddr_in, sin_addr) + offsetof(in_addr, s_addr);
+      len = sizeof(in_addr::s_addr);
+      break;
+   case AF_INET6:
+      off = offsetof(sockaddr_in6, sin6_addr) + offsetof(in6_addr, s6_addr);
+      len = sizeof(in6_addr::s6_addr);
+      break;
+   default:
+      goto fail;
+   }
+   return true;
+}
+
 dns::ResponseMap::ClientData *
 dns::ResponseMap::Lookup(uint16_t id, const struct sockaddr *addr)
 {
@@ -46,32 +71,13 @@ dns::ResponseMap::Lookup(uint16_t id, const struct sockaddr *addr)
    if (p == map.end())
       return nullptr;
    auto &res = p->second;
-   if ((addr ? pollster::socklen(addr) : 0) != res.sockaddr.size())
+   int off = 0;
+   size_t len = 0;
+   ParseAddr(addr, off, len);
+   if (len != res.sockaddr.size())
       return nullptr;
-   if (addr)
-   {
-#if 0
-      if (memcmp(addr, res.sockaddr.data(), res.sockaddr.size()))
-#else
-      int off = 0;
-      size_t len = 0;
-      switch (addr->sa_family)
-      {
-      case AF_INET:
-         off = offsetof(sockaddr_in, sin_addr) + offsetof(in_addr, s_addr);
-         len = sizeof(in_addr::s_addr);
-         break;
-      case AF_INET6:
-         off = offsetof(sockaddr_in6, sin6_addr) + offsetof(in6_addr, s6_addr);
-         len = sizeof(in6_addr::s6_addr);
-         break;
-      default:
-         return nullptr;
-      }
-      if (memcmp((const char*)addr+off, res.sockaddr.data()+off, len))
-#endif
-         return nullptr;
-   }
+   if (len && memcmp((const char*)addr+off, res.sockaddr.data(), len))
+      return nullptr;
    return &res;
 }
 
@@ -87,10 +93,12 @@ dns::ResponseMap::OnRequest(
 
    try
    {
-      if (addr)
+      int off = 0;
+      size_t len = 0;
+      if (ParseAddr(addr, off, len))
       {
-         auto p = (const char *)addr;
-         state.sockaddr.insert(state.sockaddr.begin(), p, p+pollster::socklen(addr));
+         auto p = (const char *)addr + off;
+         state.sockaddr.insert(state.sockaddr.begin(), p, p+len);
       }
       state.cb = cb;
       map[id] = std::move(state);
