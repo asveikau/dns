@@ -129,7 +129,7 @@ dns::Server::SendUdp(
       len = 512;
    }
 
-   if ((r = sendto(fd->Get(), buf, len, 0, addr, pollster::socklen((struct sockaddr*)addr))) < 0)
+   if ((r = sendto(fd->Get(), buf, len, 0, addr, pollster::socklen(addr))) < 0)
    {
       ERROR_SET(err, socket);
    }
