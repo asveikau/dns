@@ -5,7 +5,7 @@ src/main.o: src/main.cc $(LIBCOMMON_ROOT)include/common/c++/handle.h $(LIBCOMMON
 	$(CXX) $(CXXFLAGS) $(CFLAGS) -c -o $@ $<
 src/dns/parse.o: src/dns/parse.cc $(LIBCOMMON_ROOT)include/common/error.h include/dnsmsg.h include/dnsproto.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS) -c -o $@ $<
-src/dns/server.o: src/dns/server.cc $(LIBCOMMON_ROOT)include/common/error.h $(LIBCOMMON_ROOT)include/common/logger.h include/dnsmsg.h include/dnsproto.h include/dnsserver.h
+src/dns/server.o: src/dns/server.cc $(LIBCOMMON_ROOT)include/common/c++/handle.h $(LIBCOMMON_ROOT)include/common/error.h $(LIBCOMMON_ROOT)include/common/logger.h include/dnsmsg.h include/dnsproto.h include/dnsserver.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS) -c -o $@ $<
 src/dns/tcp.o: src/dns/tcp.cc $(LIBCOMMON_ROOT)include/common/c++/handle.h $(LIBCOMMON_ROOT)include/common/c++/refcount.h $(LIBCOMMON_ROOT)include/common/error.h $(LIBCOMMON_ROOT)include/common/refcnt.h $(LIBPOLLSTER_ROOT)include/pollster/filter.h $(LIBPOLLSTER_ROOT)include/pollster/pollster.h $(LIBPOLLSTER_ROOT)include/pollster/sockapi.h $(LIBPOLLSTER_ROOT)include/pollster/ssl.h include/dnsproto.h include/dnsserver.h
 	$(CXX) $(CXXFLAGS) $(CFLAGS) -c -o $@ $<

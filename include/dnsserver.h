@@ -11,13 +11,28 @@
 
 #include <stddef.h>
 #include <functional>
+#include <memory>
 
+#include <common/c++/handle.h>
 #include <common/error.h>
+
+struct sockaddr;
 
 namespace dns {
 
 class Server
 {
+   std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
+
+   void
+   SendUdp(
+      const std::shared_ptr<common::SocketHandle> &fd,
+      const struct sockaddr *addr,
+      const void *buf,
+      size_t len,
+      error *err
+   );
+
 protected:
    void
    HandleMessage(
@@ -31,6 +46,9 @@ public:
 
    void
    StartTcp(error *err);
+
+   void
+   SendUdp(const struct sockaddr *addr, const void *buf, size_t len, error *err);
 };
 
 } // end namespace

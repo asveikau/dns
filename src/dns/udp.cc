@@ -64,6 +64,15 @@ dns::Server::StartUdp(int af, error *err)
    set_nonblock(fd->Get(), true, err);
    ERROR_CHECK(err);
 
+   switch (af)
+   {
+   case AF_INET:
+      udpSocket = fd;
+      break;
+   case AF_INET6:
+      udp6Socket = fd;
+   }
+
    loop->add_socket(
       fd,
       false,
@@ -85,22 +94,9 @@ dns::Server::StartUdp(int af, error *err)
             {
                HandleMessage(
                   buf, r,
-                  [fd, addr] (const void *buf, size_t len, error *err) -> void
+                  [fd, addr, this] (const void *buf, size_t len, error *err) -> void
                   {
-                     sendrecv_retval r = 0;
-
-                     if (len > 512)
-                     {
-                        auto hdr = (MessageHeader*)buf;
-                        hdr->Truncated = 1;
-                        len = 512;
-                     }
-
-                     if ((r = sendto(fd->Get(), buf, len, 0, &addr.sa, pollster::socklen((struct sockaddr*)&addr.sa))) < 0)
-                     {
-                        ERROR_SET(err, socket);
-                     }
-                  exit:;
+                     SendUdp(fd, &addr.sa, buf, len, err);
                   },
                   err
                );
@@ -112,5 +108,58 @@ dns::Server::StartUdp(int af, error *err)
       sev.GetAddressOf(),
       err
    );
+exit:;
+}
+
+void
+dns::Server::SendUdp(
+   const std::shared_ptr<common::SocketHandle> &fd,
+   const struct sockaddr *addr,
+   const void *buf,
+   size_t len,
+   error *err
+)
+{
+   sendrecv_retval r = 0;
+
+   if (len > 512)
+   {
+      auto hdr = (MessageHeader*)buf;
+      hdr->Truncated = 1;
+      len = 512;
+   }
+
+   if ((r = sendto(fd->Get(), buf, len, 0, addr, pollster::socklen((struct sockaddr*)addr))) < 0)
+   {
+      ERROR_SET(err, socket);
+   }
+exit:;
+}
+
+void
+dns::Server::SendUdp(
+   const struct sockaddr *addr,
+   const void *buf,
+   size_t len,
+   error *err
+)
+{
+   std::shared_ptr<common::SocketHandle> *fdp = nullptr;
+   switch (addr->sa_family)
+   {
+   case AF_INET:
+      fdp = &udpSocket;
+      break;
+   case AF_INET6:
+      fdp = &udp6Socket;
+      break;
+   default:
+      error_set_unknown(err, "Invalid family");
+      return;
+   }
+   auto &fd = *fdp;
+   if (!fd->Valid())
+      ERROR_SET(err, unknown, "TODO: set up new socket");
+   SendUdp(fd, addr, buf, len, err);
 exit:;
 }
