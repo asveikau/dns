@@ -26,6 +26,8 @@ dns::ResponseMap::OnResponse(
    {
       auto cb = std::move(res->cb);
       map.erase(id);
+      if (cb)
+         cb(buf, len, msg, err);
    }
 }
 
@@ -46,9 +48,30 @@ dns::ResponseMap::Lookup(uint16_t id, const struct sockaddr *addr)
    auto &res = p->second;
    if ((addr ? pollster::socklen(addr) : 0) != res.sockaddr.size())
       return nullptr;
-   if (addr &&
-       memcmp(addr, res.sockaddr.data(), res.sockaddr.size()))
-      return nullptr;
+   if (addr)
+   {
+#if 0
+      if (memcmp(addr, res.sockaddr.data(), res.sockaddr.size()))
+#else
+      int off = 0;
+      size_t len = 0;
+      switch (addr->sa_family)
+      {
+      case AF_INET:
+         off = offsetof(sockaddr_in, sin_addr) + offsetof(in_addr, s_addr);
+         len = sizeof(in_addr::s_addr);
+         break;
+      case AF_INET6:
+         off = offsetof(sockaddr_in6, sin6_addr) + offsetof(in6_addr, s6_addr);
+         len = sizeof(in6_addr::s6_addr);
+         break;
+      default:
+         return nullptr;
+      }
+      if (memcmp((const char*)addr+off, res.sockaddr.data()+off, len))
+#endif
+         return nullptr;
+   }
    return &res;
 }
 

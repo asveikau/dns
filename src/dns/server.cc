@@ -34,15 +34,15 @@ dns::Server::HandleMessage(
       goto errorReply;
    }
 
-   {
-      char msgbuf[4096];
-      log_printf("Incoming message:\n%s", msg.Describe(msgbuf, sizeof(msgbuf)));
-   }
-
    if (msg.Header->Response)
    {
       map.OnResponse(msg.Header->Id.Get(), addr, buf, len, msg, err);
       return;
+   }
+
+   {
+      char msgbuf[4096];
+      log_printf("Request:\n%s", msg.Describe(msgbuf, sizeof(msgbuf)));
    }
 
    // Several DNS servers reject more than one question per packet.
@@ -54,7 +54,6 @@ dns::Server::HandleMessage(
    }
 
 #if 1
-   if (!msg.Header->Response)
    {
       struct sockaddr_in in = {0};
       pollster::sockaddr_set_af(&in);
