@@ -16,6 +16,7 @@ LDFLAGS += -L$(LIBCOMMON_ROOT) -lcommon
 SRCFILES += \
    src/main.cc \
    src/dns/parse.cc \
+   src/dns/reqmap.cc \
    src/dns/server.cc \
    src/dns/tcp.cc \
    src/dns/udp.cc

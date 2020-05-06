@@ -29,17 +29,17 @@ public:
       size_t len,
       Message &msg,
       error *err
-   ) {}
+   );
 
    void
-   OnNoResponse(uint16_t id, const struct sockaddr *) {}
+   OnNoResponse(uint16_t id, const struct sockaddr *);
 
    typedef std::function<void(
       const void *buf,
       size_t len,
       Message &msg,
-      error *err)
-   > Callback;
+      error *err
+   )> Callback;
 
    void
    OnRequest(
@@ -47,7 +47,7 @@ public:
       const struct sockaddr *addr,
       const Callback &cb,
       error *err
-   ) {}
+   );
 
 private:
    struct ClientData
@@ -56,6 +56,9 @@ private:
       std::vector<char> sockaddr;
    };
    std::map<uint16_t, ClientData> map;
+
+   ClientData *
+   Lookup(uint16_t id, const struct sockaddr *addr);
 };
 
 } // end namespace

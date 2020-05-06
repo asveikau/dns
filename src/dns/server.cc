@@ -6,6 +6,10 @@
  copyright notice and this permission notice appear in all copies.
 */
 
+#if 1 // XXX
+#include <pollster/socket.h>
+#endif
+
 #include <dnsserver.h>
 #include <dnsmsg.h>
 
@@ -48,6 +52,31 @@ dns::Server::HandleMessage(
       rc = ResponseCode::FormatError;
       goto errorReply;
    }
+
+#if 1
+   if (!msg.Header->Response)
+   {
+      struct sockaddr_in in = {0};
+      pollster::sockaddr_set_af(&in);
+      in.sin_addr.s_addr = 0x08080808U;
+      in.sin_port = htons(53);
+      SendUdp(
+         (struct sockaddr*)&in,
+         buf,
+         len,
+         [] (const void *buf,
+             size_t len,
+             Message &msg,
+             error *err) -> void
+         {
+            char msgbuf[4096];
+            log_printf("Response:\n%s", msg.Describe(msgbuf, sizeof(msgbuf)));
+         },
+         err
+      );
+      ERROR_CHECK(err);
+   }
+#endif
 
 exit:;
    if (ERROR_FAILED(err))
