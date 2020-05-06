@@ -16,42 +16,11 @@
 #include <common/c++/handle.h>
 #include <common/error.h>
 
-struct sockaddr;
+#include <dnsreqmap.h>
 
 namespace dns {
 
 struct Message;
-
-struct ResponseMap
-{
-   void
-   OnResponse(
-      uint16_t id,
-      const struct sockaddr *,
-      const void *buf,
-      size_t len,
-      Message &msg,
-      error *err
-   ) {}
-
-   void
-   OnNoResponse(uint16_t id, const struct sockaddr *) {}
-
-   typedef std::function<void(
-      const void *buf,
-      size_t len,
-      Message &msg,
-      error *err)
-   > Callback;
-
-   void
-   OnRequest(
-      uint16_t id,
-      const struct sockaddr *addr,
-      const Callback &cb,
-      error *err
-   ) {}
-};
 
 class Server
 {
