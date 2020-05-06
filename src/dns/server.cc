@@ -63,6 +63,7 @@ dns::Server::HandleMessage(
          (struct sockaddr*)&in,
          buf,
          len,
+         &msg,
          [] (const void *buf,
              size_t len,
              Message &msg,

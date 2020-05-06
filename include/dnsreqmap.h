@@ -42,6 +42,7 @@ public:
    OnRequest(
       uint16_t id,
       const struct sockaddr *addr,
+      const Message &msg,
       const Callback &cb,
       error *err
    );

@@ -10,7 +10,7 @@
 #include <pollster/pollster.h>
 
 #include <dnsserver.h>
-#include <dnsproto.h>
+#include <dnsmsg.h>
 
 using pollster::sendrecv_retval;
 
@@ -146,6 +146,7 @@ dns::Server::SendUdp(
    const struct sockaddr *addr,
    const void *buf,
    size_t len,
+   const Message *msg,
    const ResponseMap::Callback &cb,
    error *err
 )
@@ -173,6 +174,16 @@ dns::Server::SendUdp(
    SendUdp(fd, addr, buf, len, err);
    ERROR_CHECK(err);
    if (cb)
-      map.OnRequest(((MessageHeader*)buf)->Id.Get(), addr, cb, err);
+   {
+      Message msgStorage;
+
+      if (!msg)
+      {
+         ParseMessage(buf, len, &msgStorage, err);
+         ERROR_CHECK(err);
+         msg = &msgStorage;
+      }
+      map.OnRequest(((MessageHeader*)buf)->Id.Get(), addr, *msg, cb, err);
+   }
 exit:;
 }

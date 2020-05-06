@@ -52,7 +52,14 @@ public:
    StartTcp(error *err);
 
    void
-   SendUdp(const struct sockaddr *addr, const void *buf, size_t len, const ResponseMap::Callback &cb, error *err);
+   SendUdp(
+      const struct sockaddr *addr,
+      const void *buf,
+      size_t len,
+      const Message *msg,
+      const ResponseMap::Callback &cb,
+      error *err
+   );
 };
 
 } // end namespace
