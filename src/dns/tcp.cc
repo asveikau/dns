@@ -19,11 +19,13 @@ dns::Server::StartTcp(error *err)
 
    if (!srv.on_client)
    {
-      srv.on_client = [this] (const std::shared_ptr<pollster::StreamSocket> &fd, error *err) -> void
+      std::weak_ptr<Server> weak = shared_from_this();
+
+      srv.on_client = [weak] (const std::shared_ptr<pollster::StreamSocket> &fd, error *err) -> void
       {
          struct State
          {
-            dns::Server* srv;
+            std::weak_ptr<dns::Server> srv;
             std::shared_ptr<pollster::StreamSocket> fd;
             std::vector<char> bufferedBytes;
             ResponseMap map;
@@ -71,7 +73,10 @@ dns::Server::StartTcp(error *err)
                if (len < 2 + plen)
                   break;
 
-               state->srv->HandleMessage(
+               auto srv = state->srv.lock();
+               if (!srv.get())
+
+               srv->HandleMessage(
                   (char*)p+2, plen,
                   nullptr,
                   state->map,
@@ -127,7 +132,7 @@ dns::Server::StartTcp(error *err)
          };
 
          state->fd = fd;
-         state->srv = this;
+         state->srv = weak;
       exit:;
       };
 

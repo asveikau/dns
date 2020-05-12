@@ -20,7 +20,7 @@ main()
 {
    error err;
    common::Pointer<pollster::waiter> loop;
-   dns::Server srv;
+   std::shared_ptr<dns::Server> srv;
 
    log_register_callback(
       [] (void *np, const char *p) -> void { fputs(p, stderr); },
@@ -35,23 +35,32 @@ main()
    pollster::socket_startup(&err);
    ERROR_CHECK(&err);
 
+   try
+   {
+      srv = std::make_shared<dns::Server>();
+   }
+   catch (std::bad_alloc)
+   {
+      ERROR_SET(&err, nomem);
+   }
+
    {
       struct sockaddr_in in;
       pollster::sockaddr_set_af(&in);
       in.sin_addr.s_addr = 0x08080808U;
       in.sin_port = htons(53);
 
-      srv.AddForwardServer((struct sockaddr*)&in, &err);
+      srv->AddForwardServer((struct sockaddr*)&in, &err);
       ERROR_CHECK(&err);
    }
 
-   srv.StartUdp(AF_INET, &err);
+   srv->StartUdp(AF_INET, &err);
    ERROR_CHECK(&err);
-   srv.StartUdp(AF_INET6, &err);
+   srv->StartUdp(AF_INET6, &err);
    if (ERROR_FAILED(&err))
       error_clear(&err);
 
-   srv.StartTcp(&err);
+   srv->StartTcp(&err);
    ERROR_CHECK(&err);
 
    for (;;)

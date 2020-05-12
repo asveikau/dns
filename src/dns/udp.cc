@@ -17,6 +17,7 @@ using pollster::sendrecv_retval;
 void
 dns::Server::StartUdp(int af, error *err)
 {
+   std::weak_ptr<Server> weak = shared_from_this();
    std::shared_ptr<common::SocketHandle> fd;
    common::Pointer<pollster::waiter> loop;
    common::Pointer<pollster::socket_event> sev;
@@ -79,9 +80,9 @@ dns::Server::StartUdp(int af, error *err)
    loop->add_socket(
       fd,
       false,
-      [fd, map, this] (pollster::socket_event *sev, error *err) -> void
+      [fd, map, weak] (pollster::socket_event *sev, error *err) -> void
       {
-         sev->on_signal = [fd, map, this] (error *err) -> void
+         sev->on_signal = [fd, map, weak] (error *err) -> void
          {
             char buf[512];
             u_addr addr;
@@ -93,15 +94,22 @@ dns::Server::StartUdp(int af, error *err)
             addrlen = sizeof(addr);
             sendrecv_retval r;
 
+            auto rc = weak.lock();
+            if (!rc.get())
+               ERROR_SET(err, unknown, "Server object destroyed");
+
             while ((r = recvfrom(fd->Get(), buf, sizeof(buf), 0, &addr.sa, &addrlen)) > 0)
             {
-               HandleMessage(
+               rc->HandleMessage(
                   buf, r,
                   &addr.sa,
                   *map,
-                  [fd, addr, this] (const void *buf, size_t len, error *err) -> void
+                  [fd, addr, weak] (const void *buf, size_t len, error *err) -> void
                   {
-                     SendUdp(fd, &addr.sa, buf, len, err);
+                     auto rc = weak.lock();
+                     if (!rc.get())
+                        return;
+                     rc->SendUdp(fd, &addr.sa, buf, len, err);
                   },
                   err
                );
