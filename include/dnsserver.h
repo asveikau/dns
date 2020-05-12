@@ -16,6 +16,7 @@
 
 #include <common/c++/handle.h>
 #include <common/error.h>
+#include <common/crypto/rng.h>
 
 #include <dnsreqmap.h>
 
@@ -26,6 +27,12 @@ struct Message;
 class Server : public std::enable_shared_from_this<Server>
 {
 public:
+   Server() : rng(nullptr) {}
+   ~Server()
+   {
+      if (rng) rng_close(rng);
+   }
+
    void
    StartUdp(int af, error *err);
 
@@ -41,6 +48,7 @@ private:
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
    ResponseMap udpResp, udp6Resp;
    std::vector<std::vector<char>> forwardServers;
+   struct rng_state *rng;
 
    void
    HandleMessage(
@@ -49,6 +57,14 @@ private:
       ResponseMap &map,
       const std::function<void(const void *, size_t, error *)> &reply,
       error *err
+   );
+
+   void
+   TryForwardPacket(
+      void *buf, size_t len,
+      const Message &msg,
+      const std::function<void(const void *, size_t, error *)> &reply,
+      error *err      
    );
 
    void
