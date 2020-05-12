@@ -28,6 +28,7 @@ class Server : public std::enable_shared_from_this<Server>
 {
 public:
    Server() : rng(nullptr) {}
+   Server(const Server&) = delete;
    ~Server()
    {
       if (rng) rng_close(rng);
