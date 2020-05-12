@@ -22,6 +22,9 @@ dns::Server::TryForwardPacket(
 {
    uint16_t originalId;
 
+   if (!forwardServers.size())
+      ERROR_SET(err, unknown, "no forward servers");
+
    memcpy(&originalId, &msg.Header->Id, sizeof(msg.Header->Id));
 
    auto reply = [originalId, innerReply] (const void *buf, size_t len, error *err) -> void
@@ -42,9 +45,6 @@ dns::Server::TryForwardPacket(
 
    rng_generate(rng, &msg.Header->Id, sizeof(msg.Header->Id), err);
    ERROR_CHECK(err);
-
-   if (!forwardServers.size())
-      ERROR_SET(err, unknown, "no forward servers");
 
    // TODO
 exit:;
