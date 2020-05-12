@@ -14,6 +14,7 @@
 #define dnsproto_h_ 1
 
 #include <stdint.h>
+#include <string.h>
 
 #if defined(_WINDOWS)
 #undef IN
