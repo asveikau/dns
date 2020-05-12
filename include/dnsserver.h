@@ -12,6 +12,7 @@
 #include <stddef.h>
 #include <functional>
 #include <memory>
+#include <vector>
 
 #include <common/c++/handle.h>
 #include <common/error.h>
@@ -24,8 +25,28 @@ struct Message;
 
 class Server
 {
+public:
+   void
+   StartUdp(int af, error *err);
+
+   void
+   StartTcp(error *err);
+
+   void
+   AddForwardServer(const struct sockaddr *sa, error *err);
+private:
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
    ResponseMap udpResp, udp6Resp;
+   std::vector<std::vector<char>> forwardServers;
+
+   void
+   HandleMessage(
+      void *buf, size_t len,
+      const struct sockaddr *addr,
+      ResponseMap &map,
+      const std::function<void(const void *, size_t, error *)> &reply,
+      error *err
+   );
 
    void
    SendUdp(
@@ -35,21 +56,6 @@ class Server
       size_t len,
       error *err
    );
-protected:
-   void
-   HandleMessage(
-      void *buf, size_t len,
-      const struct sockaddr *addr,
-      ResponseMap &map,
-      const std::function<void(const void *, size_t, error *)> &reply,
-      error *err
-  );
-public:
-   void
-   StartUdp(int af, error *err);
-
-   void
-   StartTcp(error *err);
 
    void
    SendUdp(

@@ -35,6 +35,16 @@ main()
    pollster::socket_startup(&err);
    ERROR_CHECK(&err);
 
+   {
+      struct sockaddr_in in;
+      pollster::sockaddr_set_af(&in);
+      in.sin_addr.s_addr = 0x08080808U;
+      in.sin_port = htons(53);
+
+      srv.AddForwardServer((struct sockaddr*)&in, &err);
+      ERROR_CHECK(&err);
+   }
+
    srv.StartUdp(AF_INET, &err);
    ERROR_CHECK(&err);
    srv.StartUdp(AF_INET6, &err);

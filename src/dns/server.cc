@@ -6,14 +6,10 @@
  copyright notice and this permission notice appear in all copies.
 */
 
-#if 1 // XXX
 #include <pollster/socket.h>
-#endif
 
 #include <dnsserver.h>
 #include <dnsmsg.h>
-
-#include <common/logger.h>
 
 void
 dns::Server::HandleMessage(
@@ -40,11 +36,6 @@ dns::Server::HandleMessage(
       return;
    }
 
-   {
-      char msgbuf[4096];
-      log_printf("Request:\n%s", msg.Describe(msgbuf, sizeof(msgbuf)));
-   }
-
    // Several DNS servers reject more than one question per packet.
    //
    if (msg.Header->QuestionCount.Get() != 1)
@@ -52,31 +43,6 @@ dns::Server::HandleMessage(
       rc = ResponseCode::FormatError;
       goto errorReply;
    }
-
-#if 1
-   {
-      struct sockaddr_in in = {0};
-      pollster::sockaddr_set_af(&in);
-      in.sin_addr.s_addr = 0x08080808U;
-      in.sin_port = htons(53);
-      SendUdp(
-         (struct sockaddr*)&in,
-         buf,
-         len,
-         &msg,
-         [] (const void *buf,
-             size_t len,
-             Message &msg,
-             error *err) -> void
-         {
-            char msgbuf[4096];
-            log_printf("Response:\n%s", msg.Describe(msgbuf, sizeof(msgbuf)));
-         },
-         err
-      );
-      ERROR_CHECK(err);
-   }
-#endif
 
 exit:;
    if (ERROR_FAILED(err))
@@ -95,4 +61,23 @@ errorReply:
       reply(&repl, sizeof(repl), err);
       error_clear(err);
    }
+}
+
+void
+dns::Server::AddForwardServer(
+   const struct sockaddr *sa,
+   error *err
+)
+{
+   try
+   {
+      std::vector<char> vec;
+      auto sap = (const char*)sa;
+      vec.insert(vec.end(), sap, sap+pollster::socklen(sa));
+   }
+   catch (std::bad_alloc)
+   {
+      ERROR_SET(err, nomem);
+   }
+exit:;
 }
