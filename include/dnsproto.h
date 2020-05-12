@@ -60,7 +60,7 @@ struct MessageHeader
    I16 AuthorityNameCount;
    I16 AdditionalRecordCount;
 
-   //MessageHeader() { memset(this, 0, sizeof(*this)); }
+   MessageHeader() { memset(this, 0, sizeof(*this)); }
 };
 
 struct RecordAttrs
