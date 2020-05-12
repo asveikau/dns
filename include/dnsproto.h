@@ -22,6 +22,11 @@
 namespace dns {
 #pragma pack(push, 1)
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4200) // C99 flexible array member
+#endif
+
 class I16
 {
    uint16_t value;
@@ -77,6 +82,10 @@ struct QuestionAttrs
    I16 Type;
    I16 Class;
 };
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 #pragma pack(pop)
 
