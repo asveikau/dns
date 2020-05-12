@@ -6,8 +6,6 @@
  copyright notice and this permission notice appear in all copies.
 */
 
-#include <pollster/socket.h>
-
 #include <dnsserver.h>
 #include <dnsmsg.h>
 
@@ -61,23 +59,4 @@ errorReply:
       reply(&repl, sizeof(repl), err);
       error_clear(err);
    }
-}
-
-void
-dns::Server::AddForwardServer(
-   const struct sockaddr *sa,
-   error *err
-)
-{
-   try
-   {
-      std::vector<char> vec;
-      auto sap = (const char*)sa;
-      vec.insert(vec.end(), sap, sap+pollster::socklen(sa));
-   }
-   catch (std::bad_alloc)
-   {
-      ERROR_SET(err, nomem);
-   }
-exit:;
 }

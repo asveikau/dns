@@ -34,6 +34,9 @@ public:
 
    void
    AddForwardServer(const struct sockaddr *sa, error *err);
+
+   void
+   ClearForwardServers();
 private:
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
    ResponseMap udpResp, udp6Resp;
