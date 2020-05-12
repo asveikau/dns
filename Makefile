@@ -20,7 +20,8 @@ SRCFILES += \
    src/dns/reqmap.cc \
    src/dns/server.cc \
    src/dns/tcp.cc \
-   src/dns/udp.cc
+   src/dns/udp.cc \
+   src/dns/write.cc
 
 APPNAME=dns
 
