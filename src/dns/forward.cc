@@ -22,7 +22,7 @@ dns::Server::TryForwardPacket(
 {
    uint16_t originalId;
 
-   memcpy(&originalId, &msg.Header->Id, sizeof(&msg.Header->Id));
+   memcpy(&originalId, &msg.Header->Id, sizeof(msg.Header->Id));
 
    auto reply = [originalId, innerReply] (const void *buf, size_t len, error *err) -> void
    {
