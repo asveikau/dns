@@ -8,6 +8,7 @@
 
 #include <pollster/socket.h>
 #include <dnsreqmap.h>
+#include <dnsmsg.h>
 
 #include <string.h>
 
@@ -21,11 +22,15 @@ dns::ResponseMap::OnResponse(
    error *err
 )
 {
-   auto res = Lookup(id, addr);
+   auto res = Lookup(id, addr, msg);
    if (res)
    {
+      auto &list = map.find(id)->second;
       auto cb = std::move(res->cb);
-      map.erase(id);
+      if (list.size() == 1)
+         map.erase(id);
+      else
+         list.erase(list.begin() + (res - list.data()));
       if (cb)
          cb(buf, len, msg, err);
    }
@@ -57,20 +62,31 @@ ParseAddr(const struct sockaddr *addr, int &off, size_t &len)
 }
 
 dns::ResponseMap::ClientData *
-dns::ResponseMap::Lookup(uint16_t id, const struct sockaddr *addr)
+dns::ResponseMap::Lookup(uint16_t id, const struct sockaddr *addr, const Message &msg)
 {
+   if (msg.Questions.size() ! = 1)
+      return nullptr;
+   auto type = msg.Questions[0].Attrs->Type.Get();
    auto p = map.find(id);
    if (p == map.end())
       return nullptr;
-   auto &res = p->second;
+   auto &resList = p->second;
    int off = 0;
    size_t len = 0;
    ParseAddr(addr, off, len);
-   if (len != res.sockaddr.size())
-      return nullptr;
-   if (len && memcmp((const char*)addr+off, res.sockaddr.data(), len))
-      return nullptr;
-   return &res;
+   for (auto &res : resList)
+   {
+      if (type != res.type)
+         continue;
+      if (len != res.sockaddr.size())
+         continue;
+      if (len && memcmp((const char*)addr+off, res.sockaddr.data(), len))
+         continue;
+      if (msg.Questions[0].Name != res.name)
+         continue;
+      return &res;
+   }
+   return nullptr;
 }
 
 void
@@ -84,6 +100,9 @@ dns::ResponseMap::OnRequest(
 {
    ClientData state;
 
+   if (msg.Questions.size() != 1)
+      ERROR_SET(err, unknown, "Expected question");
+
    try
    {
       int off = 0;
@@ -94,7 +113,9 @@ dns::ResponseMap::OnRequest(
          state.sockaddr.insert(state.sockaddr.begin(), p, p+len);
       }
       state.cb = cb;
-      map[id] = std::move(state);
+      state.type = msg.Questions[0].Attrs->Type.Get();
+      state.name = msg.Questions[0].Name;
+      map[id].push_back(std::move(state));
    }
    catch (std::bad_alloc)
    {

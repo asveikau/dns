@@ -10,6 +10,7 @@
 #define dns_reqmap_h_
 
 #include <map>
+#include <string>
 #include <vector>
 
 struct sockaddr;
@@ -52,11 +53,13 @@ private:
    {
       Callback cb;
       std::vector<char> sockaddr;
+      uint16_t type;
+      std::string name;
    };
-   std::map<uint16_t, ClientData> map;
+   std::map<uint16_t, std::vector<ClientData>> map;
 
    ClientData *
-   Lookup(uint16_t id, const struct sockaddr *addr);
+   Lookup(uint16_t id, const struct sockaddr *addr, const Message &msg);
 };
 
 } // end namespace
