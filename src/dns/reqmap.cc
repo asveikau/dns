@@ -64,7 +64,7 @@ ParseAddr(const struct sockaddr *addr, int &off, size_t &len)
 dns::ResponseMap::ClientData *
 dns::ResponseMap::Lookup(uint16_t id, const struct sockaddr *addr, const Message &msg)
 {
-   if (msg.Questions.size() ! = 1)
+   if (msg.Questions.size() != 1)
       return nullptr;
    auto type = msg.Questions[0].Attrs->Type.Get();
    auto p = map.find(id);
