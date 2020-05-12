@@ -11,10 +11,18 @@
 void
 dns::I16::Put(uint16_t value)
 {
+   auto p = (unsigned char*)&this->value;
+   p[0] = (value >> 8);
+   p[1] = (value & 0xff);
 }
 
 void
 dns::I32::Put(uint32_t value)
 {
+   auto p = (unsigned char*)&this->value;
+   p[0] = (value >> 24);
+   p[1] = (value >> 16);
+   p[2] = (value >> 8);
+   p[3] = (value & 0xff);
 }
 
