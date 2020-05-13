@@ -1,7 +1,7 @@
 .PHONY: all all-phony clean depend
 all: all-phony
 
-CFLAGS += -O2 -Wall
+CFLAGS += -g -O2 -Wall
 WINDOWS_SUBSYSTEM=console
 
 MAKEFILES_ROOT?=submodules/makefiles/

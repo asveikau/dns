@@ -83,6 +83,8 @@ retryPostOffset:
       data = (const char*)base + offset;
       goto retry;
    }
+   else if (!len)
+      ; // no-op
    else if (inBuffer < len+1)
       ERROR_SET(err, unknown, "out of bounds");
    else

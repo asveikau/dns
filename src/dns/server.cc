@@ -53,13 +53,33 @@ errorReply:
    error_clear(err);
    if (len > 2 && (len < 3 || !((MessageHeader*)buf)->Response))
    {
-      MessageHeader repl;
+      MessageWriter writer;
 
-      memcpy(&repl.Id, &((MessageHeader*)buf)->Id, sizeof(repl.Id));
-      repl.Response = 1;
-      repl.ResponseCode = (unsigned)rc;
+      writer.Header->Id.Put(((MessageHeader*)buf)->Id.Get());
+      writer.Header->Response = 1;
+      writer.Header->ResponseCode = (unsigned)rc;
 
-      reply(&repl, sizeof(repl), err);
+      for (auto q : msg.Questions)
+      {
+         auto qq = writer.AddQuestion(err);
+         if (ERROR_FAILED(err))
+            break;
+         qq->Name = std::move(q.Name);
+         *qq->Attrs = *q.Attrs;
+      }
+
+      auto vec = writer.Serialize(err);
+
+      if (ERROR_FAILED(err))
+      {
+         error_clear(err);
+         writer.Header->QuestionCount.Put(0);
+         reply(writer.Header, sizeof(*writer.Header), err);
+      }
+      else
+      {
+         reply(vec.data(), vec.size(), err);
+      }
       error_clear(err);
    }
 }
