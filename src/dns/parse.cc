@@ -403,6 +403,7 @@ dns::TypeToString(uint16_t type)
       TYPE(MINFO);
       TYPE(MX);
       TYPE(TXT);
+      TYPE(AAAA);
 #undef TYPE
    }
 

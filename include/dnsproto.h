@@ -108,6 +108,7 @@ enum class Type
    MINFO   = 14,
    MX      = 15,
    TXT     = 16,
+   AAAA    = 28,
 };
 
 enum class QType
