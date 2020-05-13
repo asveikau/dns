@@ -46,6 +46,47 @@ struct Message
    Describe(char *buf, size_t len);
 };
 
+class MessageWriter : public Message
+{
+   MessageHeader headerStorage;
+   std::vector<QuestionAttrs> qattrs;
+   std::vector<RecordAttrs> rattrs;
+   std::vector<Record> answerReqs, authorityReqs, additlRecs;
+
+   Record *
+   AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count, error *err);
+
+public:
+   MessageWriter()
+   {
+      Header = &headerStorage;
+   }
+
+   std::vector<char>
+   Serialize(error *err);
+
+   Question *
+   AddQuestion(error *err);
+
+   Record *
+   AddAnswer(error *err)
+   {
+      return AddRecord(Answers, answerReqs, Header->AnswerCount, err);
+   }
+
+   Record *
+   AddAuthority(error *err)
+   {
+      return AddRecord(AuthorityNames, authorityReqs, Header->AuthorityNameCount, err);
+   }
+
+   Record *
+   AddAdditional(error *err)
+   {
+      return AddRecord(AdditionalRecords, additlRecs, Header->AdditionalRecordCount, err);
+   }
+};
+
 void
 ParseMessage(
    const void *buf,
