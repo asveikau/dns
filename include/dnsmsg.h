@@ -50,11 +50,11 @@ class MessageWriter : public Message
 {
    MessageHeader headerStorage;
    std::vector<QuestionAttrs> qattrs;
-   std::vector<RecordAttrs> rattrs;
+   std::vector<char> rattrs;
    std::vector<Record> answerReqs, authorityReqs, additlRecs;
 
    Record *
-   AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count, error *err);
+   AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count, uint16_t payload, error *err);
 
 public:
    MessageWriter()
@@ -69,21 +69,21 @@ public:
    AddQuestion(error *err);
 
    Record *
-   AddAnswer(error *err)
+   AddAnswer(uint16_t payload, error *err)
    {
-      return AddRecord(Answers, answerReqs, Header->AnswerCount, err);
+      return AddRecord(Answers, answerReqs, Header->AnswerCount, payload, err);
    }
 
    Record *
-   AddAuthority(error *err)
+   AddAuthority(uint16_t payload, error *err)
    {
-      return AddRecord(AuthorityNames, authorityReqs, Header->AuthorityNameCount, err);
+      return AddRecord(AuthorityNames, authorityReqs, Header->AuthorityNameCount, payload, err);
    }
 
    Record *
-   AddAdditional(error *err)
+   AddAdditional(uint16_t payload, error *err)
    {
-      return AddRecord(AdditionalRecords, additlRecs, Header->AdditionalRecordCount, err);
+      return AddRecord(AdditionalRecords, additlRecs, Header->AdditionalRecordCount, payload, err);
    }
 };
 

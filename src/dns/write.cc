@@ -37,7 +37,7 @@ exit:
 }
 
 dns::Record *
-dns::MessageWriter::AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count, error *err)
+dns::MessageWriter::AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count, uint16_t payload, error *err)
 {
    Record *r = nullptr;
    auto oldAttrs = rattrs.data();
@@ -49,8 +49,10 @@ dns::MessageWriter::AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count
    {
       vec.resize(vec.size() + 1);
       r = &vec[vec.size()-1];
-      rattrs.resize(rattrs.size() + 1);
-      r->Attrs = oldAttrs + rattrs.size() - 1;
+      auto oldSize = rattrs.size();
+      rattrs.resize(oldSize + offsetof(RecordAttrs, Data) + payload);
+      r->Attrs = (RecordAttrs*)((char*)oldAttrs + oldSize);
+      r->Attrs->Length.Put(payload);
    }
    catch (std::bad_alloc)
    {
@@ -70,7 +72,7 @@ dns::MessageWriter::AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count
       {
          for (auto &r : *rlist)
          {
-            r.Attrs = rattrs.data() + (r.Attrs - oldAttrs);
+            r.Attrs = (RecordAttrs*)(rattrs.data() + ((char*)r.Attrs - oldAttrs));
          }
       }
    }
