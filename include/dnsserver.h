@@ -92,6 +92,16 @@ private:
       const ResponseMap::Callback &cb,
       error *err
    );
+
+   void
+   SendUdp(
+      const std::shared_ptr<ForwardServerState> &state,
+      const void *buf,
+      size_t len,
+      const Message *msg,
+      const ResponseMap::Callback &cb,
+      error *err
+   );
 };
 
 } // end namespace

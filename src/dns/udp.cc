@@ -195,3 +195,23 @@ dns::Server::SendUdp(
    }
 exit:;
 }
+
+void
+dns::Server::SendUdp(
+   const std::shared_ptr<ForwardServerState> &state,
+   const void *buf,
+   size_t len,
+   const Message *msg,
+   const ResponseMap::Callback &cb,
+   error *err
+)
+{
+   SendUdp(
+      (const struct sockaddr*)state->sockaddr.data(),
+      buf,
+      len,
+      msg,
+      cb,
+      err
+   );
+}
