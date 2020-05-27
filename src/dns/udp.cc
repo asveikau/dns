@@ -151,7 +151,7 @@ exit:;
 
 void
 dns::Server::SendUdp(
-   const struct sockaddr *addr,
+   const std::shared_ptr<ForwardServerState> &state,
    const void *buf,
    size_t len,
    const Message *msg,
@@ -159,6 +159,7 @@ dns::Server::SendUdp(
    error *err
 )
 {
+   auto addr = (const struct sockaddr*)state->sockaddr.data();
    std::shared_ptr<common::SocketHandle> *fdp = nullptr;
    ResponseMap *mapp = nullptr;
    switch (addr->sa_family)
@@ -194,24 +195,4 @@ dns::Server::SendUdp(
       map.OnRequest(((MessageHeader*)buf)->Id.Get(), addr, *msg, cb, err);
    }
 exit:;
-}
-
-void
-dns::Server::SendUdp(
-   const std::shared_ptr<ForwardServerState> &state,
-   const void *buf,
-   size_t len,
-   const Message *msg,
-   const ResponseMap::Callback &cb,
-   error *err
-)
-{
-   SendUdp(
-      (const struct sockaddr*)state->sockaddr.data(),
-      buf,
-      len,
-      msg,
-      cb,
-      err
-   );
 }
