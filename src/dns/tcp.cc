@@ -75,6 +75,7 @@ dns::Server::StartTcp(error *err)
 
                auto srv = state->srv.lock();
                if (!srv.get())
+                  break;
 
                srv->HandleMessage(
                   (char*)p+2, plen,
