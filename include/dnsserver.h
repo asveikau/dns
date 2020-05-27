@@ -46,9 +46,15 @@ public:
    void
    ClearForwardServers();
 private:
+
+   struct ForwardServerState
+   {
+      std::vector<char> sockaddr;
+   };
+
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
    ResponseMap udpResp, udp6Resp;
-   std::vector<std::vector<char>> forwardServers;
+   std::vector<std::shared_ptr<ForwardServerState>> forwardServers;
    struct rng_state *rng;
 
    void

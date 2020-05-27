@@ -58,10 +58,13 @@ dns::Server::AddForwardServer(
 {
    try
    {
-      std::vector<char> vec;
+      auto state = std::make_shared<ForwardServerState>();
+
+      auto &vec = state->sockaddr;
       auto sap = (const char*)sa;
       vec.insert(vec.end(), sap, sap+pollster::socklen(sa));
-      forwardServers.push_back(std::move(vec));
+
+      forwardServers.push_back(std::move(state));
    }
    catch (std::bad_alloc)
    {
