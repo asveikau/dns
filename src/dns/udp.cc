@@ -135,7 +135,7 @@ dns::Server::SendUdp(
 {
    sendrecv_retval r = 0;
 
-   if (len > 512)
+   if (len > 512 && len >= 3)
    {
       auto hdr = (MessageHeader*)buf;
       hdr->Truncated = 1;
