@@ -44,7 +44,10 @@ public:
    }
 
    void
-   StartUdp(int af, error *err);
+   StartUdp(int af, error *err)
+   {
+      StartUdp(af, MessageMode::Both, err);
+   }
 
    void
    StartTcp(error *err);
@@ -109,6 +112,9 @@ private:
       const ResponseMap::Callback &cb,
       error *err
    );
+
+   void
+   StartUdp(int af, MessageMode mode, error *err);
 };
 
 } // end namespace

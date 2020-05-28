@@ -44,7 +44,7 @@ exit:;
 } // end namespace
 
 void
-dns::Server::StartUdp(int af, error *err)
+dns::Server::StartUdp(int af, MessageMode mode, error *err)
 {
    std::weak_ptr<Server> weak = shared_from_this();
    std::shared_ptr<common::SocketHandle> fd;
@@ -109,9 +109,9 @@ dns::Server::StartUdp(int af, error *err)
    loop->add_socket(
       fd,
       false,
-      [fd, map, weak] (pollster::socket_event *sev, error *err) -> void
+      [fd, map, weak, mode] (pollster::socket_event *sev, error *err) -> void
       {
-         sev->on_signal = [fd, map, weak] (error *err) -> void
+         sev->on_signal = [fd, map, weak, mode] (error *err) -> void
          {
             char buf[512];
             u_addr addr;
@@ -130,7 +130,7 @@ dns::Server::StartUdp(int af, error *err)
             while ((r = recvfrom(fd->Get(), buf, sizeof(buf), 0, &addr.sa, &addrlen)) > 0)
             {
                rc->HandleMessage(
-                  MessageMode::Both,
+                  mode,
                   buf, r,
                   &addr.sa,
                   *map,
@@ -184,7 +184,10 @@ dns::Server::SendUdp(
    auto &fd = *fdp;
    auto &map = *mapp;
    if (!fd->Valid())
-      ERROR_SET(err, unknown, "TODO: set up new socket");
+   {
+      StartUdp(addr->sa_family, MessageMode::Client, err);
+      ERROR_CHECK(err);
+   }
    WriteUdp(fd, addr, buf, len, err);
    ERROR_CHECK(err);
    if (cb)
