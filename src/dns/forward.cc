@@ -53,12 +53,15 @@ exit:;
 void
 dns::Server::AddForwardServer(
    const struct sockaddr *sa,
+   Protocol proto,
    error *err
 )
 {
    try
    {
       auto state = std::make_shared<ForwardServerState>();
+
+      state->proto = proto;
 
       auto &vec = state->sockaddr;
       auto sap = (const char*)sa;

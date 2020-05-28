@@ -33,6 +33,12 @@ enum class MessageMode
    Both   = Client | Server
 };
 
+enum class Protocol
+{
+   Plaintext,
+   DnsOverTls,
+};
+
 class Server : public std::enable_shared_from_this<Server>
 {
 public:
@@ -53,7 +59,20 @@ public:
    StartTcp(error *err);
 
    void
-   AddForwardServer(const struct sockaddr *sa, error *err);
+   AddForwardServer(
+      const struct sockaddr *sa,
+      Protocol proto,
+      error *err
+   );
+
+   void
+   AddForwardServer(
+      const struct sockaddr *sa,
+      error *err
+   )
+   {
+      AddForwardServer(sa, Protocol::Plaintext, err);
+   }
 
    void
    ClearForwardServers();
@@ -76,8 +95,9 @@ private:
       std::vector<char> sockaddr;
       std::shared_ptr<pollster::StreamSocket> tcpSocket;
       ResponseMap *tcpMap;
+      Protocol proto;
 
-      ForwardServerState() : tcpMap(nullptr) {}
+      ForwardServerState() : tcpMap(nullptr), proto(Protocol::Plaintext) {}
    };
 
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;

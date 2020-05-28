@@ -6,6 +6,7 @@
  copyright notice and this permission notice appear in all copies.
 */
 
+#include <pollster/socket.h>
 #include <pollster/sockapi.h>
 #include <dnsserver.h>
 #include <dnsproto.h>
@@ -211,7 +212,38 @@ dns::Server::SendTcp(
             err
          );
          ERROR_CHECK(err);
+
+         if (state->proto == Protocol::DnsOverTls)
+         {
+            pollster::SslArgs ssl;
+
+            pollster::CreateSslFilter(ssl, fd->filter, err);
+            ERROR_CHECK(err);
+            fd->CheckFilter(err);
+            ERROR_CHECK(err);
+         }
+
          state->tcpSocket = fd;
+
+         char buf[1024];
+         char *port;
+         pollster::sockaddr_to_string((struct sockaddr*)state->sockaddr.data(), buf, sizeof(buf));
+         port = buf+strlen(buf)+1;
+         auto get_port = [&] () -> int
+         {
+            auto sa = (const struct sockaddr*)state->sockaddr.data();
+            switch (sa->sa_family)
+            {
+            case AF_INET:
+               return ntohs(((const struct sockaddr_in*)sa)->sin_port);
+            case AF_INET6:
+               return ntohs(((const struct sockaddr_in6*)sa)->sin6_port);
+            }
+            return 0;
+         };
+         snprintf(port, sizeof(buf) - (port-buf), "%d", get_port());
+         fd->Connect(buf, port);
+         ERROR_CHECK(err);
       }
       catch (std::bad_alloc)
       {
