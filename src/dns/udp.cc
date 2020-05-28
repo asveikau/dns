@@ -14,6 +14,35 @@
 
 using pollster::sendrecv_retval;
 
+namespace {
+
+void
+WriteUdp(
+   const std::shared_ptr<common::SocketHandle> &fd,
+   const struct sockaddr *addr,
+   const void *buf,
+   size_t len,
+   error *err
+)
+{
+   sendrecv_retval r = 0;
+
+   if (len > 512 && len >= 3)
+   {
+      auto hdr = (dns::MessageHeader*)buf;
+      hdr->Truncated = 1;
+      len = 512;
+   }
+
+   if ((r = sendto(fd->Get(), buf, len, 0, addr, pollster::socklen(addr))) < 0)
+   {
+      ERROR_SET(err, socket);
+   }
+exit:;
+}
+
+} // end namespace
+
 void
 dns::Server::StartUdp(int af, error *err)
 {
@@ -109,7 +138,7 @@ dns::Server::StartUdp(int af, error *err)
                      auto rc = weak.lock();
                      if (!rc.get())
                         return;
-                     rc->SendUdp(fd, &addr.sa, buf, len, err);
+                     WriteUdp(fd, &addr.sa, buf, len, err);
                   },
                   err
                );
@@ -121,31 +150,6 @@ dns::Server::StartUdp(int af, error *err)
       sev.GetAddressOf(),
       err
    );
-exit:;
-}
-
-void
-dns::Server::SendUdp(
-   const std::shared_ptr<common::SocketHandle> &fd,
-   const struct sockaddr *addr,
-   const void *buf,
-   size_t len,
-   error *err
-)
-{
-   sendrecv_retval r = 0;
-
-   if (len > 512 && len >= 3)
-   {
-      auto hdr = (MessageHeader*)buf;
-      hdr->Truncated = 1;
-      len = 512;
-   }
-
-   if ((r = sendto(fd->Get(), buf, len, 0, addr, pollster::socklen(addr))) < 0)
-   {
-      ERROR_SET(err, socket);
-   }
 exit:;
 }
 
@@ -180,7 +184,7 @@ dns::Server::SendUdp(
    auto &map = *mapp;
    if (!fd->Valid())
       ERROR_SET(err, unknown, "TODO: set up new socket");
-   SendUdp(fd, addr, buf, len, err);
+   WriteUdp(fd, addr, buf, len, err);
    ERROR_CHECK(err);
    if (cb)
    {

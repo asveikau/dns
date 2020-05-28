@@ -76,15 +76,6 @@ private:
 
    void
    SendUdp(
-      const std::shared_ptr<common::SocketHandle> &fd,
-      const struct sockaddr *addr,
-      const void *buf,
-      size_t len,
-      error *err
-   );
-
-   void
-   SendUdp(
       const std::shared_ptr<ForwardServerState> &state,
       const void *buf,
       size_t len,
