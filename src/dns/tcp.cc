@@ -119,7 +119,7 @@ WriteTcp(const std::shared_ptr<pollster::StreamSocket> &fd, const void *buf, siz
 {
    if (fd.get())
    {
-      if (len > 65535 && len >= 3)
+      if (len > 65535)
       {
          auto hdr = (dns::MessageHeader*)buf;
          hdr->Truncated = 1;

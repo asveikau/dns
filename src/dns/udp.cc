@@ -27,7 +27,7 @@ WriteUdp(
 {
    sendrecv_retval r = 0;
 
-   if (len > 512 && len >= 3)
+   if (len > 512)
    {
       auto hdr = (dns::MessageHeader*)buf;
       hdr->Truncated = 1;
