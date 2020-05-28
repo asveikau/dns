@@ -169,6 +169,7 @@ dns::Server::StartTcp(error *err)
                std::weak_ptr<pollster::StreamSocket> weakFd = fd;
 
                srv->HandleMessage(
+                  MessageMode::Server,
                   buf, len,
                   nullptr,
                   map,
@@ -228,6 +229,7 @@ dns::Server::SendTcp(
                std::weak_ptr<pollster::StreamSocket> weakFd = state->tcpSocket;
 
                srv->HandleMessage(
+                  MessageMode::Client,
                   buf, len,
                   nullptr,
                   map,

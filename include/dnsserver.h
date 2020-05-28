@@ -26,6 +26,13 @@ namespace dns {
 
 struct Message;
 
+enum class MessageMode
+{
+   Client = (1),
+   Server = (1<<1),
+   Both   = Client | Server
+};
+
 class Server : public std::enable_shared_from_this<Server>
 {
 public:
@@ -65,6 +72,7 @@ private:
 
    void
    HandleMessage(
+      MessageMode mode,
       void *buf, size_t len,
       const struct sockaddr *addr,
       ResponseMap &map,

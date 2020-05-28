@@ -11,6 +11,7 @@
 
 void
 dns::Server::HandleMessage(
+   MessageMode mode,
    void *buf, size_t len,
    const struct sockaddr *addr,
    ResponseMap &map,
@@ -30,9 +31,12 @@ dns::Server::HandleMessage(
 
    if (msg.Header->Response)
    {
-      map.OnResponse(msg.Header->Id.Get(), addr, buf, len, msg, err);
+      if ((int)mode & (int)MessageMode::Client)
+         map.OnResponse(msg.Header->Id.Get(), addr, buf, len, msg, err);
       return;
    }
+   else if (!((int)mode & (int)MessageMode::Server))
+      return;
 
    // Several DNS servers reject more than one question per packet.
    //
@@ -51,7 +55,9 @@ exit:;
    return;
 errorReply:
    error_clear(err);
-   if (len > 2 && (len < 3 || !((MessageHeader*)buf)->Response))
+   if (((int)mode & (int)MessageMode::Server) &&
+       len > 2 &&
+       (len < 3 || !((MessageHeader*)buf)->Response))
    {
       MessageWriter writer;
 

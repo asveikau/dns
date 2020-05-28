@@ -130,6 +130,7 @@ dns::Server::StartUdp(int af, error *err)
             while ((r = recvfrom(fd->Get(), buf, sizeof(buf), 0, &addr.sa, &addrlen)) > 0)
             {
                rc->HandleMessage(
+                  MessageMode::Both,
                   buf, r,
                   &addr.sa,
                   *map,
