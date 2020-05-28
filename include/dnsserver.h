@@ -18,6 +18,8 @@
 #include <common/error.h>
 #include <common/crypto/rng.h>
 
+#include <pollster/sockapi.h>
+
 #include <dnsreqmap.h>
 
 namespace dns {
@@ -50,6 +52,10 @@ private:
    struct ForwardServerState
    {
       std::vector<char> sockaddr;
+      std::shared_ptr<pollster::StreamSocket> tcpSocket;
+      ResponseMap *tcpMap;
+
+      ForwardServerState() : tcpMap(nullptr) {}
    };
 
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
@@ -76,6 +82,16 @@ private:
 
    void
    SendUdp(
+      const std::shared_ptr<ForwardServerState> &state,
+      const void *buf,
+      size_t len,
+      const Message *msg,
+      const ResponseMap::Callback &cb,
+      error *err
+   );
+
+   void
+   SendTcp(
       const std::shared_ptr<ForwardServerState> &state,
       const void *buf,
       size_t len,

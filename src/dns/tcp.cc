@@ -9,17 +9,20 @@
 #include <pollster/sockapi.h>
 #include <dnsserver.h>
 #include <dnsproto.h>
+#include <dnsmsg.h>
 
 #include <vector>
 
 namespace {
 
-template <typename OnRead>
+template <typename OnRead, typename OnClose>
 void
 CreateTcp(
    const std::weak_ptr<dns::Server> &weak,
    const std::shared_ptr<pollster::StreamSocket> &fd,
+   dns::ResponseMap **map,
    const OnRead &onRead,
+   const OnClose &onClose,
    error *err
 )
 {
@@ -104,13 +107,16 @@ CreateTcp(
    exit:;
    };
 
-   fd->on_closed = [state] (error *err) -> void
+   fd->on_closed = [state, onClose] (error *err) -> void
    {
+      onClose(state->map);
       state->fd.reset();
    };
 
    state->fd = fd;
    state->srv = weak;
+   if (map)
+      *map = &state->map;
 exit:;
 }
 
@@ -150,6 +156,7 @@ dns::Server::StartTcp(error *err)
          CreateTcp(
             weak,
             fd,
+            nullptr,
             [] (
                const std::shared_ptr<Server> &srv,
                const std::shared_ptr<pollster::StreamSocket> &fd,
@@ -175,6 +182,9 @@ dns::Server::StartTcp(error *err)
                ERROR_CHECK(err);
             exit:;
             },
+            [] (ResponseMap &map) -> void
+            {
+            },
             err
          );
          ERROR_CHECK(err);
@@ -183,6 +193,84 @@ dns::Server::StartTcp(error *err)
 
       srv.AddPort(53, err);
       ERROR_CHECK(err);
+   }
+exit:;
+}
+
+void
+dns::Server::SendTcp(
+   const std::shared_ptr<ForwardServerState> &state,
+   const void *buf,
+   size_t len,
+   const Message *msg,
+   const ResponseMap::Callback &cb,
+   error *err
+)
+{
+   if (!state->tcpSocket.get())
+   {
+      try
+      {
+         auto fd = std::make_shared<pollster::StreamSocket>();
+         CreateTcp(
+            shared_from_this(),
+            fd,
+            &state->tcpMap,
+            [state] (
+               const std::shared_ptr<Server> &srv,
+               const std::shared_ptr<pollster::StreamSocket> &fd,
+               void *buf,
+               size_t len,
+               ResponseMap &map,
+               error *err
+            ) -> void
+            {
+               std::weak_ptr<pollster::StreamSocket> weakFd = state->tcpSocket;
+
+               srv->HandleMessage(
+                  buf, len,
+                  nullptr,
+                  map,
+                  [weakFd] (const void *buf, size_t len, error *err) -> void
+                  {
+                     WriteTcp(weakFd.lock(), buf, len, err);
+                  },
+                  err
+               );
+               ERROR_CHECK(err);
+            exit:;
+            },
+            [state] (ResponseMap &map) -> void
+            {
+               state->tcpSocket.reset();
+               state->tcpMap = nullptr;
+            },
+            err
+         );
+         ERROR_CHECK(err);
+         state->tcpSocket = fd;
+      }
+      catch (std::bad_alloc)
+      {
+         ERROR_SET(err, nomem);
+      }
+   }
+   WriteTcp(state->tcpSocket, buf, len, err);
+   ERROR_CHECK(err);
+   if (cb)
+   {
+      Message msgStorage;
+      auto &map = *(state->tcpMap);
+
+      if (!msg)
+      {
+         ParseMessage(buf, len, &msgStorage, err);
+         ERROR_CHECK(err);
+         msg = &msgStorage;
+      }
+      if (len < 2)
+         ERROR_SET(err, unknown, "Short write");
+      map.OnRequest(((MessageHeader*)buf)->Id.Get(), nullptr, *msg, cb, err);
    }
 exit:;
 }

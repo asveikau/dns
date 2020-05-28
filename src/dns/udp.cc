@@ -196,6 +196,8 @@ dns::Server::SendUdp(
          ERROR_CHECK(err);
          msg = &msgStorage;
       }
+      if (len < 2)
+         ERROR_SET(err, unknown, "Short write");
       map.OnRequest(((MessageHeader*)buf)->Id.Get(), addr, *msg, cb, err);
    }
 exit:;
