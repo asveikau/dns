@@ -12,6 +12,130 @@
 
 #include <vector>
 
+namespace {
+
+template <typename OnRead>
+void
+CreateTcp(
+   const std::weak_ptr<dns::Server> &weak,
+   const std::shared_ptr<pollster::StreamSocket> &fd,
+   const OnRead &onRead,
+   error *err
+)
+{
+   struct State
+   {
+      std::weak_ptr<dns::Server> srv;
+      std::shared_ptr<pollster::StreamSocket> fd;
+      std::vector<char> bufferedBytes;
+      dns::ResponseMap map;
+   };
+   std::shared_ptr<State> state;
+   try
+   {
+      state = std::make_shared<State>();
+   }
+   catch (std::bad_alloc)
+   {
+      ERROR_SET(err, nomem);
+   }
+
+   fd->on_recv = [state, onRead] (const void *buf, size_t len, error *err) -> void
+   {
+      bool heap = false;
+
+      if (!len)
+         return;
+
+      if (state->bufferedBytes.size())
+      {
+         try
+         {
+            state->bufferedBytes.insert(state->bufferedBytes.end(), (char*)buf, (char*)buf + len);
+         }
+         catch (std::bad_alloc)
+         {
+            ERROR_SET(err, nomem);
+         }
+
+         heap = true;
+         buf = state->bufferedBytes.data();
+         len = state->bufferedBytes.size();
+      }
+
+      for (;;)
+      {
+         if (len < 2)
+            break;
+
+         auto p = (const unsigned char*)buf;;
+         uint16_t plen = p[1] | (((uint16_t)*p) << 8);
+         if (len < 2 + plen)
+            break;
+
+         auto srv = state->srv.lock();
+         if (!srv.get())
+            break;
+
+         onRead(srv, state->fd, (char*)p+2, plen, state->map, err);
+         ERROR_CHECK(err);
+
+         size_t r = 2 + (size_t)plen;
+         buf = p + r;
+         len -= r;
+      }
+
+      if (len && !heap)
+      {
+         try
+         {
+            state->bufferedBytes.insert(state->bufferedBytes.end(), (char*)buf, (char*)buf+len);
+         }
+         catch (std::bad_alloc)
+         {
+            ERROR_SET(err, nomem);
+         }
+      }
+      else
+      {
+         auto begin = state->bufferedBytes.begin();
+         state->bufferedBytes.erase(begin, begin + (state->bufferedBytes.size() - len));
+      }
+   exit:;
+   };
+
+   fd->on_closed = [state] (error *err) -> void
+   {
+      state->fd.reset();
+   };
+
+   state->fd = fd;
+   state->srv = weak;
+exit:;
+}
+
+void
+WriteTcp(const std::shared_ptr<pollster::StreamSocket> &fd, const void *buf, size_t len, error *err)
+{
+   if (fd.get())
+   {
+      if (len > 65535 && len >= 3)
+      {
+         auto hdr = (dns::MessageHeader*)buf;
+         hdr->Truncated = 1;
+         len = 65535;
+      }
+      unsigned char lenpkt[] =
+      {
+         (unsigned char)(len >> 8), (unsigned char)len
+      };
+      fd->Write(lenpkt, sizeof(lenpkt));
+      fd->Write(buf, len);
+   }
+}
+
+} // end namespace
+
 void
 dns::Server::StartTcp(error *err)
 {
@@ -23,118 +147,38 @@ dns::Server::StartTcp(error *err)
 
       srv.on_client = [weak] (const std::shared_ptr<pollster::StreamSocket> &fd, error *err) -> void
       {
-         struct State
-         {
-            std::weak_ptr<dns::Server> srv;
-            std::shared_ptr<pollster::StreamSocket> fd;
-            std::vector<char> bufferedBytes;
-            ResponseMap map;
-         };
-         std::shared_ptr<State> state;
-         try
-         {
-            state = std::make_shared<State>();
-         }
-         catch (std::bad_alloc)
-         {
-            ERROR_SET(err, nomem);
-         }
-
-         fd->on_recv = [state] (const void *buf, size_t len, error *err) -> void
-         {
-            bool heap = false;
-
-            if (!len)
-               return;
-
-            if (state->bufferedBytes.size())
+         CreateTcp(
+            weak,
+            fd,
+            [] (
+               const std::shared_ptr<Server> &srv,
+               const std::shared_ptr<pollster::StreamSocket> &fd,
+               void *buf,
+               size_t len,
+               ResponseMap &map,
+               error *err
+            ) -> void
             {
-               try
-               {
-                  state->bufferedBytes.insert(state->bufferedBytes.end(), (char*)buf, (char*)buf + len);
-               }
-               catch (std::bad_alloc)
-               {
-                  ERROR_SET(err, nomem);
-               }
-
-               heap = true;
-               buf = state->bufferedBytes.data();
-               len = state->bufferedBytes.size();
-            }
-
-            for (;;)
-            {
-               if (len < 2)
-                  break;
-
-               auto p = (const unsigned char*)buf;;
-               uint16_t plen = p[1] | (((uint16_t)*p) << 8);
-               if (len < 2 + plen)
-                  break;
-
-               auto srv = state->srv.lock();
-               if (!srv.get())
-                  break;
+               std::weak_ptr<pollster::StreamSocket> weakFd = fd;
 
                srv->HandleMessage(
-                  (char*)p+2, plen,
+                  buf, len,
                   nullptr,
-                  state->map,
-                  [state] (const void *buf, size_t len, error *err) -> void
+                  map,
+                  [weakFd] (const void *buf, size_t len, error *err) -> void
                   {
-                     auto fd = state->fd;
-                     if (!fd.get())
-                        return;
-                     if (len > 65535)
-                     {
-                        auto hdr = (dns::MessageHeader*)buf;
-                        hdr->Truncated = 1;
-                        len = 65535;
-                     }
-                     unsigned char lenpkt[] =
-                     {
-                        (unsigned char)(len >> 8), (unsigned char)len
-                     };
-                     fd->Write(lenpkt, sizeof(lenpkt));
-                     fd->Write(buf, len);
+                     auto fd = weakFd.lock();
+                     WriteTcp(fd, buf, len, err);
                   },
                   err
                );
                ERROR_CHECK(err);
-
-               size_t r = 2 + (size_t)plen;
-               buf = p + r;
-               len -= r;
-            }
-
-            if (len && !heap)
-            {
-               try
-               {
-                  state->bufferedBytes.insert(state->bufferedBytes.end(), (char*)buf, (char*)buf+len);
-               }
-               catch (std::bad_alloc)
-               {
-                  ERROR_SET(err, nomem);
-               }
-            }
-            else
-            {
-               auto begin = state->bufferedBytes.begin();
-               state->bufferedBytes.erase(begin, begin + (state->bufferedBytes.size() - len));
-            }
+            exit:;
+            },
+            err
+         );
+         ERROR_CHECK(err);
          exit:;
-         };
-
-         fd->on_closed = [state] (error *err) -> void
-         {
-            state->fd.reset();
-         };
-
-         state->fd = fd;
-         state->srv = weak;
-      exit:;
       };
 
       srv.AddPort(53, err);
