@@ -54,6 +54,18 @@ public:
 
    void
    ClearForwardServers();
+
+   // XXX this was private before, and makes more sense like that.
+   void
+   HandleMessage(
+      MessageMode mode,
+      void *buf, size_t len,
+      const struct sockaddr *addr,
+      ResponseMap &map,
+      const std::function<void(const void *, size_t, error *)> &reply,
+      error *err
+   );
+
 private:
 
    struct ForwardServerState
@@ -69,16 +81,6 @@ private:
    ResponseMap udpResp, udp6Resp;
    std::vector<std::shared_ptr<ForwardServerState>> forwardServers;
    struct rng_state *rng;
-
-   void
-   HandleMessage(
-      MessageMode mode,
-      void *buf, size_t len,
-      const struct sockaddr *addr,
-      ResponseMap &map,
-      const std::function<void(const void *, size_t, error *)> &reply,
-      error *err
-   );
 
    void
    TryForwardPacket(

@@ -15,13 +15,33 @@
 
 namespace {
 
-template <typename OnRead, typename OnClose>
+void
+WriteTcp(const std::shared_ptr<pollster::StreamSocket> &fd, const void *buf, size_t len, error *err)
+{
+   if (fd.get())
+   {
+      if (len > 65535)
+      {
+         auto hdr = (dns::MessageHeader*)buf;
+         hdr->Truncated = 1;
+         len = 65535;
+      }
+      unsigned char lenpkt[] =
+      {
+         (unsigned char)(len >> 8), (unsigned char)len
+      };
+      fd->Write(lenpkt, sizeof(lenpkt));
+      fd->Write(buf, len);
+   }
+}
+
+template <typename OnClose>
 void
 CreateTcp(
    const std::weak_ptr<dns::Server> &weak,
    const std::shared_ptr<pollster::StreamSocket> &fd,
    dns::ResponseMap **map,
-   const OnRead &onRead,
+   dns::MessageMode mode,
    const OnClose &onClose,
    error *err
 )
@@ -43,7 +63,7 @@ CreateTcp(
       ERROR_SET(err, nomem);
    }
 
-   fd->on_recv = [state, onRead] (const void *buf, size_t len, error *err) -> void
+   fd->on_recv = [state, mode] (const void *buf, size_t len, error *err) -> void
    {
       bool heap = false;
 
@@ -80,7 +100,17 @@ CreateTcp(
          if (!srv.get())
             break;
 
-         onRead(srv, state->fd, (char*)p+2, plen, state->map, err);
+         srv->HandleMessage(
+            mode,
+            (char*)buf+2, plen,
+            nullptr,
+            state->map,
+            [state] (const void *buf, size_t len, error *err) -> void
+            {
+               WriteTcp(state->fd, buf, len, err);
+            },
+            err
+         );
          ERROR_CHECK(err);
 
          size_t r = 2 + (size_t)plen;
@@ -120,26 +150,6 @@ CreateTcp(
 exit:;
 }
 
-void
-WriteTcp(const std::shared_ptr<pollster::StreamSocket> &fd, const void *buf, size_t len, error *err)
-{
-   if (fd.get())
-   {
-      if (len > 65535)
-      {
-         auto hdr = (dns::MessageHeader*)buf;
-         hdr->Truncated = 1;
-         len = 65535;
-      }
-      unsigned char lenpkt[] =
-      {
-         (unsigned char)(len >> 8), (unsigned char)len
-      };
-      fd->Write(lenpkt, sizeof(lenpkt));
-      fd->Write(buf, len);
-   }
-}
-
 } // end namespace
 
 void
@@ -157,32 +167,7 @@ dns::Server::StartTcp(error *err)
             weak,
             fd,
             nullptr,
-            [] (
-               const std::shared_ptr<Server> &srv,
-               const std::shared_ptr<pollster::StreamSocket> &fd,
-               void *buf,
-               size_t len,
-               ResponseMap &map,
-               error *err
-            ) -> void
-            {
-               std::weak_ptr<pollster::StreamSocket> weakFd = fd;
-
-               srv->HandleMessage(
-                  MessageMode::Server,
-                  buf, len,
-                  nullptr,
-                  map,
-                  [weakFd] (const void *buf, size_t len, error *err) -> void
-                  {
-                     auto fd = weakFd.lock();
-                     WriteTcp(fd, buf, len, err);
-                  },
-                  err
-               );
-               ERROR_CHECK(err);
-            exit:;
-            },
+            MessageMode::Server,
             [] (ResponseMap &map) -> void
             {
             },
@@ -217,31 +202,7 @@ dns::Server::SendTcp(
             shared_from_this(),
             fd,
             &state->tcpMap,
-            [state] (
-               const std::shared_ptr<Server> &srv,
-               const std::shared_ptr<pollster::StreamSocket> &fd,
-               void *buf,
-               size_t len,
-               ResponseMap &map,
-               error *err
-            ) -> void
-            {
-               std::weak_ptr<pollster::StreamSocket> weakFd = state->tcpSocket;
-
-               srv->HandleMessage(
-                  MessageMode::Client,
-                  buf, len,
-                  nullptr,
-                  map,
-                  [weakFd] (const void *buf, size_t len, error *err) -> void
-                  {
-                     WriteTcp(weakFd.lock(), buf, len, err);
-                  },
-                  err
-               );
-               ERROR_CHECK(err);
-            exit:;
-            },
+            MessageMode::Client,
             [state] (ResponseMap &map) -> void
             {
                state->tcpSocket.reset();
