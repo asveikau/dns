@@ -24,11 +24,19 @@ dns::ResponseMap::OnResponse(
    auto resp = reqs.Lookup(addr, msg);
    if (resp)
    {
-      auto cb = std::move(*resp);
-      reqs.Remove(msg.Header->Id.Get(), resp);
-      if (cb)
-         cb(buf, len, msg, err);
+      try
+      {
+         auto cb = std::move(*resp);
+         reqs.Remove(msg.Header->Id.Get(), resp);
+         if (cb)
+            cb(buf, len, msg, err);
+      }
+      catch (std::bad_alloc)
+      {
+         ERROR_SET(err, nomem);
+      }
    }
+exit:;
 }
 
 void
@@ -39,7 +47,24 @@ dns::ResponseMap::OnRequest(
    error *err
 )
 {
-   reqs.Insert(addr, msg, cb, err);
+   auto resp = reqs.Lookup(addr, msg);
+   if (resp)
+   {
+      try
+      {
+         *resp = cb;
+      }
+      catch (std::bad_alloc)
+      {
+         ERROR_SET(err, nomem);
+      }
+   }
+   else
+   {
+      reqs.Insert(addr, msg, cb, err);
+      ERROR_CHECK(err);
+   }
+exit:;
 }
 
 bool
