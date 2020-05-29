@@ -170,6 +170,16 @@ public:
       error *err
    );
 
+   void
+   OnRequest(
+      const struct sockaddr *addr,
+      const void *buf,
+      size_t len,
+      const Message *msg,
+      const Callback &cb,
+      error *err
+   );
+
 private:
    RequestMap<Callback> reqs;
 };

@@ -190,19 +190,7 @@ dns::Server::SendUdp(
    }
    WriteUdp(fd, addr, buf, len, err);
    ERROR_CHECK(err);
-   if (cb)
-   {
-      Message msgStorage;
-
-      if (!msg)
-      {
-         ParseMessage(buf, len, &msgStorage, err);
-         ERROR_CHECK(err);
-         msg = &msgStorage;
-      }
-      if (len < 2)
-         ERROR_SET(err, unknown, "Short write");
-      map.OnRequest(addr, *msg, cb, err);
-   }
+   map.OnRequest(addr, buf, len, msg, cb, err);
+   ERROR_CHECK(err);
 exit:;
 }

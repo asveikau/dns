@@ -67,6 +67,36 @@ dns::ResponseMap::OnRequest(
 exit:;
 }
 
+void
+dns::ResponseMap::OnRequest(
+   const struct sockaddr *addr,
+   const void *buf,
+   size_t len,
+   const Message *msg,
+   const Callback &cb,
+   error *err
+)
+{
+   Message msgStorage;
+
+   if (!cb)
+      goto exit;
+
+   if (!msg)
+   {
+      ParseMessage(buf, len, &msgStorage, err);
+      ERROR_CHECK(err);
+      msg = &msgStorage;
+   }
+
+   if (len < 2)
+      ERROR_SET(err, unknown, "Short write");
+
+   OnRequest(addr, *msg, cb, err);
+   ERROR_CHECK(err);
+exit:;
+}
+
 bool
 dns::internal::ParseAddr(const struct sockaddr *addr, int &off, size_t &len)
 {

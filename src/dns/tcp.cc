@@ -252,20 +252,7 @@ dns::Server::SendTcp(
    }
    WriteTcp(state->tcpSocket, buf, len, err);
    ERROR_CHECK(err);
-   if (cb)
-   {
-      Message msgStorage;
-      auto &map = *(state->tcpMap);
-
-      if (!msg)
-      {
-         ParseMessage(buf, len, &msgStorage, err);
-         ERROR_CHECK(err);
-         msg = &msgStorage;
-      }
-      if (len < 2)
-         ERROR_SET(err, unknown, "Short write");
-      map.OnRequest(nullptr, *msg, cb, err);
-   }
+   state->tcpMap->OnRequest(nullptr, buf, len, msg, cb, err);
+   ERROR_CHECK(err);
 exit:;
 }
