@@ -202,7 +202,7 @@ dns::Server::SendUdp(
       }
       if (len < 2)
          ERROR_SET(err, unknown, "Short write");
-      map.OnRequest(((MessageHeader*)buf)->Id.Get(), addr, *msg, cb, err);
+      map.OnRequest(addr, *msg, cb, err);
    }
 exit:;
 }

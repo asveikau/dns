@@ -32,7 +32,7 @@ dns::Server::HandleMessage(
    if (msg.Header->Response)
    {
       if ((int)mode & (int)MessageMode::Client)
-         map.OnResponse(msg.Header->Id.Get(), addr, buf, len, msg, err);
+         map.OnResponse(addr, buf, len, msg, err);
       return;
    }
    else if (!((int)mode & (int)MessageMode::Server))

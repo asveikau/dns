@@ -265,7 +265,7 @@ dns::Server::SendTcp(
       }
       if (len < 2)
          ERROR_SET(err, unknown, "Short write");
-      map.OnRequest(((MessageHeader*)buf)->Id.Get(), nullptr, *msg, cb, err);
+      map.OnRequest(nullptr, *msg, cb, err);
    }
 exit:;
 }
