@@ -116,7 +116,7 @@ public:
    {
       if (cancel)
       {
-         if (msg.Header->QuestionCount.Get())
+         if (!msg.Header->QuestionCount.Get())
             ERROR_SET(err, unknown, "Expected question");
          try
          {

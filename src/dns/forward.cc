@@ -13,6 +13,92 @@
 #include <string.h>
 
 void
+dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, error *err)
+{
+   auto &idx = state->idx;
+   std::function<void()> cancel;
+
+   if (idx >= forwardServers.size())
+   {
+      error_set_unknown(err, "No remaining forward servers");
+      return;
+   }
+
+   auto &server = forwardServers[idx];
+   switch (server->proto)
+   {
+   case Protocol::Plaintext:
+      break;
+   case Protocol::DnsOverTls:
+      state->udpExhausted = true;
+      break;
+   }
+
+   rng_generate(rng, state->request.data(), sizeof(dns::MessageHeader::Id), err);
+   ERROR_CHECK(err);
+
+   if (!state->udpExhausted)
+   {
+      std::weak_ptr<Server> weak = shared_from_this();
+
+      SendUdp(
+         server,
+         state->request.data(),
+         state->request.size(),
+         nullptr,
+         [weak, state, idx] (const void *buf, size_t len, Message &msg, error *err) -> void
+         {
+            if (msg.Header->Truncated)
+            {
+               auto rc = weak.lock();
+               if (!rc.get() || idx != state->idx)
+                  return;
+
+               state->udpExhausted = true;
+               rc->TryForwardPacket(state, err);
+            }
+            else
+               state->Reply(buf, len);
+         },
+         &cancel,
+         err
+      );
+      ERROR_CHECK(err);
+   }
+   else
+   {
+      SendTcp(
+         server,
+         state->request.data(),
+         state->request.size(),
+         nullptr,
+         [state] (const void *buf, size_t len, Message &msg, error *err) -> void
+         {
+            if (msg.Header->Truncated)
+               ERROR_SET(err, unknown, "Truncated on tcp");
+            else
+               state->Reply(buf, len);
+         exit:;
+         },
+         &cancel,
+         err
+      );
+      ERROR_CHECK(err);
+   }
+
+   try
+   {
+      if (cancel)           
+         state->cancel.push_back(cancel);
+   }
+   catch (std::bad_alloc)
+   {
+      ERROR_SET(err, nomem);
+   }
+exit:;
+}
+
+void
 dns::Server::TryForwardPacket(
    const struct sockaddr *addr,
    void *buf, size_t len,
@@ -144,18 +230,14 @@ dns::Server::TryForwardPacket(
    if (reqp)
       goto exit;
 
-   // TODO: start sending packets
-
    if (!rng)
    {
       rng_init(&rng, err);
       ERROR_CHECK(err);
    }
 
-#if 0
-   rng_generate(rng, &msg.Header->Id, sizeof(msg.Header->Id), err);
+   TryForwardPacket(req, err);
    ERROR_CHECK(err);
-#endif
 
 exit:
    if (cancel)

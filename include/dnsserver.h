@@ -105,6 +105,10 @@ private:
       std::vector<std::function<void(const void *, size_t, error *)>> reply;
       std::vector<std::function<void()>> cancel;
       std::vector<char> request;
+      bool udpExhausted;
+      int idx;
+
+      ForwardClientState() : udpExhausted(false), idx(0) {}
 
       void
       Reply(const void *buf, size_t len)
@@ -145,6 +149,9 @@ private:
       const std::function<void(const void *, size_t, error *)> &reply,
       error *err      
    );
+
+   void
+   TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, error *err);
 
    void
    SendUdp(
