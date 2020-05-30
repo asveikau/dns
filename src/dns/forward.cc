@@ -51,9 +51,10 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
             if (msg.Header->Truncated)
             {
                auto rc = weak.lock();
-               if (!rc.get() || idx != state->idx)
+               if (!rc.get())
                   return;
 
+               state->idx = idx;
                state->udpExhausted = true;
                rc->TryForwardPacket(state, err);
             }
