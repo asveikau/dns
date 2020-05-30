@@ -21,13 +21,17 @@ dns::Server::TryForwardPacket(
    error *err      
 )
 {
-   uint16_t originalId;
 
    if (addr && udpDeDupe.Lookup(addr, msg))
-      goto exit;
+      return;
 
    if (!forwardServers.size())
-      ERROR_SET(err, unknown, "no forward servers");
+   {
+      error_set_unknown(err, "no forward servers");
+      return;
+   }
+
+   uint16_t originalId;
 
    memcpy(&originalId, &msg.Header->Id, sizeof(msg.Header->Id));
 
