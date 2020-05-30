@@ -44,6 +44,7 @@ dns::ResponseMap::OnRequest(
    const struct sockaddr *addr,
    const Message &msg,
    const Callback &cb,
+   std::function<void()> *cancel,
    error *err
 )
 {
@@ -58,10 +59,11 @@ dns::ResponseMap::OnRequest(
       {
          ERROR_SET(err, nomem);
       }
+      // TODO: cancel
    }
    else
    {
-      reqs.Insert(addr, msg, cb, err);
+      reqs.Insert(addr, msg, cb, cancel, err);
       ERROR_CHECK(err);
    }
 exit:;
@@ -74,6 +76,7 @@ dns::ResponseMap::OnRequest(
    size_t len,
    const Message *msg,
    const Callback &cb,
+   std::function<void()> *cancel,
    error *err
 )
 {
@@ -92,7 +95,7 @@ dns::ResponseMap::OnRequest(
    if (len < 2)
       ERROR_SET(err, unknown, "Short write");
 
-   OnRequest(addr, *msg, cb, err);
+   OnRequest(addr, *msg, cb, cancel, err);
    ERROR_CHECK(err);
 exit:;
 }

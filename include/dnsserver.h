@@ -100,10 +100,41 @@ private:
       ForwardServerState() : tcpMap(nullptr), proto(Protocol::Plaintext) {}
    };
 
+   struct ForwardClientState : public std::enable_shared_from_this<ForwardClientState>
+   {
+      std::vector<std::function<void(const void *, size_t, error *)>> reply;
+      std::vector<std::function<void()>> cancel;
+      std::vector<char> request;
+
+      void
+      Reply(const void *buf, size_t len)
+      {
+         for (auto &fn : reply)
+         {
+            error err;
+            fn(buf, len, &err);
+         }
+
+         Cancel();
+      }
+
+      void
+      Cancel()
+      {
+         auto rc = shared_from_this();
+
+         for (auto &fn : cancel)
+         {
+            fn();
+         }
+      }
+   };
+
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
    ResponseMap udpResp, udp6Resp;
    std::vector<std::shared_ptr<ForwardServerState>> forwardServers;
    RequestMap<bool> udpDeDupe;
+   RequestMap<std::shared_ptr<ForwardClientState>> forwardReqs;
    struct rng_state *rng;
 
    void
@@ -122,6 +153,7 @@ private:
       size_t len,
       const Message *msg,
       const ResponseMap::Callback &cb,
+      std::function<void()> *cancel,
       error *err
    );
 
@@ -132,6 +164,7 @@ private:
       size_t len,
       const Message *msg,
       const ResponseMap::Callback &cb,
+      std::function<void()> *cancel,
       error *err
    );
 

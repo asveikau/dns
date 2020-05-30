@@ -191,6 +191,7 @@ dns::Server::SendTcp(
    size_t len,
    const Message *msg,
    const ResponseMap::Callback &cb,
+   std::function<void()> *cancel,
    error *err
 )
 {
@@ -252,7 +253,7 @@ dns::Server::SendTcp(
    }
    WriteTcp(state->tcpSocket, buf, len, err);
    ERROR_CHECK(err);
-   state->tcpMap->OnRequest(nullptr, buf, len, msg, cb, err);
+   state->tcpMap->OnRequest(nullptr, buf, len, msg, cb, cancel, err);
    ERROR_CHECK(err);
 exit:;
 }

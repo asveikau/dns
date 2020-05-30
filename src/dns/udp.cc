@@ -161,6 +161,7 @@ dns::Server::SendUdp(
    size_t len,
    const Message *msg,
    const ResponseMap::Callback &cb,
+   std::function<void()> *cancel,
    error *err
 )
 {
@@ -190,7 +191,7 @@ dns::Server::SendUdp(
    }
    WriteUdp(fd, addr, buf, len, err);
    ERROR_CHECK(err);
-   map.OnRequest(addr, buf, len, msg, cb, err);
+   map.OnRequest(addr, buf, len, msg, cb, cancel, err);
    ERROR_CHECK(err);
 exit:;
 }

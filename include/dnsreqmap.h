@@ -103,6 +103,13 @@ public:
    }
 
    void
+   Insert(const struct sockaddr *addr, const Message &msg, const Value &value, std::function<void()> *cancel, error *err)
+   {
+      // TODO: cancel
+      Insert(addr, msg, value, err);
+   }
+
+   void
    Remove(uint16_t id, Value *value)
    {
       auto it = map.find(id);
@@ -167,6 +174,7 @@ public:
       const struct sockaddr *addr,
       const Message &msg,
       const Callback &cb,
+      std::function<void()> *cancel,
       error *err
    );
 
@@ -177,6 +185,7 @@ public:
       size_t len,
       const Message *msg,
       const Callback &cb,
+      std::function<void()> *cancel,
       error *err
    );
 
