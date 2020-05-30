@@ -59,14 +59,27 @@ dns::ResponseMap::OnRequest(
       {
          ERROR_SET(err, nomem);
       }
-      // TODO: cancel
+
+      if (cancel)
+      {
+         try
+         {
+            *cancel = reqs.CreateCancel(addr, msg);
+         }
+         catch (std::bad_alloc)
+         {
+            ERROR_SET(err, nomem);
+         }
+      }
    }
    else
    {
       reqs.Insert(addr, msg, cb, cancel, err);
       ERROR_CHECK(err);
    }
-exit:;
+exit:
+   if (ERROR_FAILED(err) && cancel)
+      *cancel = std::function<void()>();
 }
 
 void

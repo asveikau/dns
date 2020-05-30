@@ -41,6 +41,28 @@ private:
 
    std::map<uint16_t, std::vector<RequestData>> map;
 
+   Value *
+   Lookup(const void *addr, size_t len, uint16_t id, uint16_t type, const std::string &name)
+   {
+      auto p = map.find(id);
+      if (p == map.end())
+         return nullptr;
+      auto &resList = p->second;
+      for (auto &res : resList)
+      {
+         if (type != res.type)
+            continue;
+         if (len != res.sockaddr.size())
+            continue;
+         if (len && memcmp(addr, res.sockaddr.data(), len))
+            continue;
+         if (name != res.name)
+            continue;
+         return &res.value;
+      }
+      return nullptr;
+   }
+
 public:
 
    Value *
@@ -49,27 +71,14 @@ public:
       auto id = msg.Header->Id.Get();
       if (msg.Questions.size() != 1)
          return nullptr;
-      auto type = msg.Questions[0].Attrs->Type.Get();
-      auto p = map.find(id);
-      if (p == map.end())
-         return nullptr;
-      auto &resList = p->second;
+      const void *addrp = nullptr;
       int off = 0;
       size_t len = 0;
-      internal::ParseAddr(addr, off, len);
-      for (auto &res : resList)
-      {
-         if (type != res.type)
-            continue;
-         if (len != res.sockaddr.size())
-            continue;
-         if (len && memcmp((const char*)addr+off, res.sockaddr.data(), len))
-            continue;
-         if (msg.Questions[0].Name != res.name)
-            continue;
-         return &res.value;
-      }
-      return nullptr;
+      if (internal::ParseAddr(addr, off, len))
+         addrp = (const char*)addr + off;
+      auto type = msg.Questions[0].Attrs->Type.Get();
+      const auto &name = msg.Questions[0].Name;
+      return Lookup(addrp, len, id, type, name);
    }
 
    void
@@ -105,8 +114,23 @@ public:
    void
    Insert(const struct sockaddr *addr, const Message &msg, const Value &value, std::function<void()> *cancel, error *err)
    {
-      // TODO: cancel
+      if (cancel)
+      {
+         if (msg.Header->QuestionCount.Get())
+            ERROR_SET(err, unknown, "Expected question");
+         try
+         {
+            *cancel = CreateCancel(addr, msg);
+         }
+         catch (std::bad_alloc)
+         {
+            ERROR_SET(err, nomem);
+         }
+      }
       Insert(addr, msg, value, err);
+   exit:
+      if (ERROR_FAILED(err) && cancel)
+         *cancel = std::function<void()>();
    }
 
    void
@@ -133,7 +157,27 @@ public:
       }
    }
 
+   std::function<void()>
+   CreateCancel(const struct sockaddr *addr, const Message &msg)
+   {
+      std::vector<char> sockaddr;
+      int off = 0;
+      size_t len = 0;
+      if (internal::ParseAddr(addr, off, len))
+         sockaddr.insert(sockaddr.begin(), (char*)addr+off, (char*)addr+len);
+      auto id = msg.Header->Id.Get();
+      auto type = msg.Questions[0].Attrs->Type.Get();
+      const auto &name = msg.Questions[0].Name;
+      return [this, id, sockaddr, type, name] () -> void
+      {
+         auto p = Lookup(sockaddr.data(), sockaddr.size(), id, type, name);
+         if (p)
+            Remove(id, p);
+      };
+   }
+
 private:
+
    template<typename T>
    static bool
    InVec(const std::vector<T> &list, void *p)
