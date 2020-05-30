@@ -46,7 +46,7 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
          state->request.data(),
          state->request.size(),
          nullptr,
-         [weak, state, idx] (const void *buf, size_t len, Message &msg, error *err) -> void
+         (state->timeoutIdx == 0) ? [weak, state, idx] (const void *buf, size_t len, Message &msg, error *err) -> void
          {
             if (msg.Header->Truncated)
             {
@@ -60,7 +60,7 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
             }
             else
                state->Reply(buf, len);
-         },
+         } : std::function<void(const void*,size_t,Message&,error*)>(),
          &cancel,
          err
       );
@@ -96,6 +96,9 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
    {
       ERROR_SET(err, nomem);
    }
+
+   // TODO: timeout ...
+
 exit:;
 }
 

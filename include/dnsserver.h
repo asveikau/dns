@@ -107,8 +107,9 @@ private:
       std::vector<char> request;
       bool udpExhausted;
       int idx;
+      int timeoutIdx;
 
-      ForwardClientState() : udpExhausted(false), idx(0) {}
+      ForwardClientState() : udpExhausted(false), idx(0), timeoutIdx(0) {}
 
       void
       Reply(const void *buf, size_t len)
