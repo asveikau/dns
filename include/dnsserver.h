@@ -103,10 +103,12 @@ private:
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
    ResponseMap udpResp, udp6Resp;
    std::vector<std::shared_ptr<ForwardServerState>> forwardServers;
+   RequestMap<bool> udpDeDupe;
    struct rng_state *rng;
 
    void
    TryForwardPacket(
+      const struct sockaddr *addr,
       void *buf, size_t len,
       const Message &msg,
       const std::function<void(const void *, size_t, error *)> &reply,

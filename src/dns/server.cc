@@ -46,7 +46,7 @@ dns::Server::HandleMessage(
       goto errorReply;
    }
 
-   TryForwardPacket(buf, len, msg, reply, err);
+   TryForwardPacket(addr, buf, len, msg, reply, err);
    ERROR_CHECK(err);
 
 exit:;

@@ -14,6 +14,7 @@
 
 void
 dns::Server::TryForwardPacket(
+   const struct sockaddr *addr,
    void *buf, size_t len,
    const Message &msg,
    const std::function<void(const void *, size_t, error *)> &innerReply,
@@ -21,6 +22,12 @@ dns::Server::TryForwardPacket(
 )
 {
    uint16_t originalId;
+
+   if (addr && udpDeDupe.Lookup(addr, msg))
+      goto exit;
+
+   if (!forwardServers.size())
+      ERROR_SET(err, unknown, "no forward servers");
 
    memcpy(&originalId, &msg.Header->Id, sizeof(msg.Header->Id));
 
@@ -33,9 +40,6 @@ dns::Server::TryForwardPacket(
       innerReply(buf, len, err);
       memcpy(&hdr->Id, &id, sizeof(hdr->Id));
    };
-
-   if (!forwardServers.size())
-      ERROR_SET(err, unknown, "no forward servers");
 
    if (!rng)
    {
