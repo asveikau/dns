@@ -112,30 +112,10 @@ private:
       ForwardClientState() : udpExhausted(false), idx(0), timeoutIdx(0) {}
 
       void
-      Reply(const void *buf, size_t len)
-      {
-         for (auto &fn : reply)
-         {
-            error err;
-            fn(buf, len, &err);
-         }
-
-         reply.resize(0);
-         Cancel();
-      }
+      Reply(const void *buf, size_t len);
 
       void
-      Cancel()
-      {
-         auto rc = shared_from_this();
-
-         for (auto &fn : cancel)
-         {
-            fn();
-         }
-
-         cancel.resize(0);
-      }
+      Cancel();
    };
 
    void CacheReply(const void *buf, size_t len)

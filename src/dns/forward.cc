@@ -352,3 +352,29 @@ dns::Server::ClearForwardServers()
 {
    forwardServers.resize(0);
 }
+
+void
+dns::Server::ForwardClientState::Reply(const void *buf, size_t len)
+{
+   for (auto &fn : reply)
+   {
+      error err;
+      fn(buf, len, &err);
+   }
+
+   reply.resize(0);
+   Cancel();
+}
+
+void
+dns::Server::ForwardClientState::Cancel()
+{
+   auto rc = shared_from_this();
+
+   for (auto &fn : cancel)
+   {
+      fn();
+   }
+
+   cancel.resize(0);
+}
