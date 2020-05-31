@@ -131,7 +131,6 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
                advance();
             else
                reply(buf, len);
-         exit:;
          },
          &cancel,
          err
