@@ -12,6 +12,18 @@
 
 #include <string.h>
 
+static bool
+RetryResponseCode(unsigned char rc)
+{
+   switch ((dns::ResponseCode)rc)
+   {
+   case dns::ResponseCode::ServerFailure:
+      return true;
+   default:
+      return false;
+   }
+}
+
 void
 dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, error *err)
 {
@@ -96,7 +108,7 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
          state->request.data(),
          state->request.size(),
          nullptr,
-         (state->timeoutIdx == 0) ? [reply, weak, state, idx] (const void *buf, size_t len, Message &msg, error *err) -> void
+         (state->timeoutIdx == 0) ? [reply, weak, state, idx, advance] (const void *buf, size_t len, Message &msg, error *err) -> void
          {
             if (msg.Header->Truncated)
             {
@@ -107,6 +119,10 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
                state->idx = idx;
                state->udpExhausted = true;
                rc->TryForwardPacket(state, err);
+            }
+            else if (RetryResponseCode(msg.Header->ResponseCode))
+            {
+               advance();
             }
             else
             {
@@ -127,7 +143,7 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
          nullptr,
          [reply, advance] (const void *buf, size_t len, Message &msg, error *err) -> void
          {
-            if (!len || msg.Header->Truncated)
+            if (!len || msg.Header->Truncated || RetryResponseCode(msg.Header->ResponseCode))
                advance();
             else
                reply(buf, len);
