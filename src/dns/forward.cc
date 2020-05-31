@@ -18,6 +18,8 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
    auto &idx = state->idx;
    std::function<void()> cancel;
    std::weak_ptr<Server> weak = shared_from_this();
+   common::Pointer<pollster::waiter> loop;
+   common::Pointer<pollster::event> timer;
 
    if (idx >= forwardServers.size())
    {
@@ -107,7 +109,30 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
       ERROR_SET(err, nomem);
    }
 
-   // TODO: timeout ...
+   pollster::get_common_queue(loop.GetAddressOf(), err);
+   ERROR_CHECK(err);
+
+   loop->add_timer(
+      250,
+      false,
+      [&] (pollster::event *ev, error *err) -> void
+      {
+         ev->on_signal = [state, weak] (error *err) -> void
+         {
+            auto rc = weak.lock();
+            if (!rc.get())
+               return;
+
+            state->idx++;
+            state->udpExhausted = false;
+
+            rc->TryForwardPacket(state, err);
+         };
+      },
+      timer.GetAddressOf(),
+      err
+   );
+   ERROR_CHECK(err);
 
 exit:;
 }
