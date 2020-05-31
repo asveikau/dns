@@ -84,7 +84,10 @@ retryPostOffset:
       goto retry;
    }
    else if (!len)
-      ; // no-op
+   {
+      if (!sawPointer)
+         r = 1;
+   }
    else if (inBuffer < len+1)
       ERROR_SET(err, unknown, "out of bounds");
    else
