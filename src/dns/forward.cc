@@ -17,6 +17,7 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
 {
    auto &idx = state->idx;
    std::function<void()> cancel;
+   std::weak_ptr<Server> weak = shared_from_this();
 
    if (idx >= forwardServers.size())
    {
@@ -34,19 +35,26 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
       break;
    }
 
+   auto reply = [state, weak] (const void *buf, size_t len) -> void
+   {
+      state->Reply(buf, len);
+
+      auto rc = weak.lock();
+      if (rc.get())
+         rc->CacheReply(buf, len);
+   };
+
    rng_generate(rng, state->request.data(), sizeof(dns::MessageHeader::Id), err);
    ERROR_CHECK(err);
 
    if (!state->udpExhausted)
    {
-      std::weak_ptr<Server> weak = shared_from_this();
-
       SendUdp(
          server,
          state->request.data(),
          state->request.size(),
          nullptr,
-         (state->timeoutIdx == 0) ? [weak, state, idx] (const void *buf, size_t len, Message &msg, error *err) -> void
+         (state->timeoutIdx == 0) ? [reply, weak, state, idx] (const void *buf, size_t len, Message &msg, error *err) -> void
          {
             if (msg.Header->Truncated)
             {
@@ -59,7 +67,9 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
                rc->TryForwardPacket(state, err);
             }
             else
-               state->Reply(buf, len);
+            {
+               reply(buf, len);
+            }
          } : std::function<void(const void*,size_t,Message&,error*)>(),
          &cancel,
          err
@@ -73,12 +83,12 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
          state->request.data(),
          state->request.size(),
          nullptr,
-         [state] (const void *buf, size_t len, Message &msg, error *err) -> void
+         [reply] (const void *buf, size_t len, Message &msg, error *err) -> void
          {
             if (msg.Header->Truncated)
                ERROR_SET(err, unknown, "Truncated on tcp");
             else
-               state->Reply(buf, len);
+               reply(buf, len);
          exit:;
          },
          &cancel,

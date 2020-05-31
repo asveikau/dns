@@ -135,6 +135,11 @@ private:
       }
    };
 
+   void CacheReply(const void *buf, size_t len)
+   {
+      // TODO
+   }
+
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
    ResponseMap udpResp, udp6Resp;
    std::vector<std::shared_ptr<ForwardServerState>> forwardServers;
