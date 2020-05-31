@@ -220,6 +220,9 @@ dns::Server::SendTcp(
          {
             pollster::SslArgs ssl;
 
+            if (state->hostname.size())
+               ssl.HostName = state->hostname.c_str();
+
             pollster::CreateSslFilter(ssl, fd->filter, err);
             ERROR_CHECK(err);
             fd->CheckFilter(err);

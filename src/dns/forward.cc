@@ -323,6 +323,7 @@ exit:
 
 void
 dns::Server::AddForwardServer(
+   const char *hostname,
    const struct sockaddr *sa,
    Protocol proto,
    error *err
@@ -331,6 +332,9 @@ dns::Server::AddForwardServer(
    try
    {
       auto state = std::make_shared<ForwardServerState>();
+
+      if (hostname && *hostname)
+         state->hostname = hostname;
 
       state->proto = proto;
 

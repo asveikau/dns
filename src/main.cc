@@ -48,9 +48,9 @@ main()
       struct sockaddr_in in;
       pollster::sockaddr_set_af(&in);
       in.sin_addr.s_addr = 0x08080808U;
-      in.sin_port = htons(53);
+      in.sin_port = htons(853);
 
-      srv->AddForwardServer((struct sockaddr*)&in, &err);
+      srv->AddForwardServer("dns.google", (struct sockaddr*)&in, dns::Protocol::DnsOverTls, &err);
       ERROR_CHECK(&err);
    }
 

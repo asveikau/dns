@@ -60,19 +60,11 @@ public:
 
    void
    AddForwardServer(
+      const char *hostname,
       const struct sockaddr *sa,
       Protocol proto,
       error *err
    );
-
-   void
-   AddForwardServer(
-      const struct sockaddr *sa,
-      error *err
-   )
-   {
-      AddForwardServer(sa, Protocol::Plaintext, err);
-   }
 
    void
    ClearForwardServers();
@@ -96,6 +88,7 @@ private:
       std::shared_ptr<pollster::StreamSocket> tcpSocket;
       ResponseMap *tcpMap;
       Protocol proto;
+      std::string hostname;
 
       ForwardServerState() : tcpMap(nullptr), proto(Protocol::Plaintext) {}
    };
