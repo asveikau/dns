@@ -64,6 +64,7 @@ errorReply:
       writer.Header->Id.Put(((MessageHeader*)buf)->Id.Get());
       writer.Header->Response = 1;
       writer.Header->ResponseCode = (unsigned)rc;
+      writer.Header->RecursionAvailable = 1;
 
       for (auto q : msg.Questions)
       {
