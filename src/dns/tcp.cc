@@ -207,6 +207,8 @@ dns::Server::SendTcp(
             MessageMode::Client,
             [state] (ResponseMap &map) -> void
             {
+               // TODO: are we dropping requests on the floor?  try to reconnect with them.
+
                state->tcpSocket.reset();
                state->tcpMap = nullptr;
             },
