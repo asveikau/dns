@@ -46,6 +46,46 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
          rc->CacheReply(buf, len);
    };
 
+   auto advance = [state, weak] () -> void
+   {
+      auto rc = weak.lock();
+      if (!rc.get())
+         return;
+      error errStorage;
+      error *err = &errStorage;
+
+      state->idx++;
+      state->udpExhausted = false;
+
+      if (state->idx >= rc->forwardServers.size())
+      {
+         Message msg;
+         MessageWriter writer;
+
+         ParseMessage(state->request.data(), state->request.size(), &msg, err);
+         ERROR_CHECK(err);
+
+         writer.Header->Response = 1;
+         writer.Header->ResponseCode = (unsigned)ResponseCode::ServerFailure;
+         writer.Header->RecursionAvailable = 1;
+
+         for (auto q : msg.Questions)
+         {
+            auto qq = writer.AddQuestion(err);
+            ERROR_CHECK(err);
+            qq->Name = std::move(q.Name);
+            *qq->Attrs = *q.Attrs;
+         }
+
+         auto vec = writer.Serialize(err);
+         state->Reply(vec.data(), vec.size());
+         goto exit;
+      }
+
+      rc->TryForwardPacket(state, err);
+   exit:;
+   };
+
    rng_generate(rng, state->request.data(), sizeof(dns::MessageHeader::Id), err);
    ERROR_CHECK(err);
 
@@ -85,10 +125,10 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
          state->request.data(),
          state->request.size(),
          nullptr,
-         [reply] (const void *buf, size_t len, Message &msg, error *err) -> void
+         [reply, advance] (const void *buf, size_t len, Message &msg, error *err) -> void
          {
-            if (msg.Header->Truncated)
-               ERROR_SET(err, unknown, "Truncated on tcp");
+            if (!len || msg.Header->Truncated)
+               advance();
             else
                reply(buf, len);
          exit:;
@@ -113,20 +153,13 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
    ERROR_CHECK(err);
 
    loop->add_timer(
-      250,
+      state->udpExhausted ? 1000 : 250,
       false,
       [&] (pollster::event *ev, error *err) -> void
       {
-         ev->on_signal = [state, weak] (error *err) -> void
+         ev->on_signal = [advance] (error *err) -> void
          {
-            auto rc = weak.lock();
-            if (!rc.get())
-               return;
-
-            state->idx++;
-            state->udpExhausted = false;
-
-            rc->TryForwardPacket(state, err);
+            advance();
          };
       },
       timer.GetAddressOf(),

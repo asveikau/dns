@@ -120,6 +120,7 @@ private:
             fn(buf, len, &err);
          }
 
+         reply.resize(0);
          Cancel();
       }
 
@@ -132,6 +133,8 @@ private:
          {
             fn();
          }
+
+         cancel.resize(0);
       }
    };
 
