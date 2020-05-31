@@ -126,6 +126,12 @@ dns::Server::TryForwardPacket(
       return;
    }
 
+   if (!msg.Header->RecursionDesired)
+   {
+      error_set_unknown(err, "recursion not desired");
+      return;
+   }
+
    uint16_t originalId;
    std::shared_ptr<std::vector<std::function<void()>>> cancelVec;
    int cancelIdx = 0;
