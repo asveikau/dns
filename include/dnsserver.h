@@ -118,11 +118,6 @@ private:
       Cancel();
    };
 
-   void CacheReply(const void *buf, size_t len)
-   {
-      // TODO
-   }
-
    std::shared_ptr<common::SocketHandle> udpSocket, udp6Socket;
    ResponseMap udpResp, udp6Resp;
    std::vector<std::shared_ptr<ForwardServerState>> forwardServers;
@@ -141,6 +136,15 @@ private:
 
    void
    TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, error *err);
+
+   bool
+   TryCache(
+      const Message &msg,
+      const std::function<void(const void *, size_t, error *)> &reply
+   );
+
+   void
+   CacheReply(const void *buf, size_t len);
 
    void
    SendUdp(
