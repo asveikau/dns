@@ -15,7 +15,11 @@
 #include <string>
 
 typedef
-std::map<std::string, std::function<void(const char*, error*)>>
+std::function<void(const char*, error*)>
+ConfigSectionHandler;
+
+typedef
+std::map<std::string, ConfigSectionHandler>
 ConfigFileMap;
 
 void

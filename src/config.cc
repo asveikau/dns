@@ -107,7 +107,7 @@ ParseConfigFile(
 {
    StreamReader reader(stream);
    char *line = nullptr;
-   const std::function<void(const char*, error*)> *fn = nullptr;
+   const ConfigSectionHandler *fn = nullptr;
 
    while ((line = reader.ReadLine(err)))
    {
