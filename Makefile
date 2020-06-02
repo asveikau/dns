@@ -14,6 +14,7 @@ LDFLAGS += -L$(LIBPOLLSTER_ROOT) -lpollster
 LDFLAGS += -L$(LIBCOMMON_ROOT) -lcommon
 
 SRCFILES += \
+   src/config.cc \
    src/main.cc \
    src/dns/cache.cc \
    src/dns/forward.cc \
