@@ -15,7 +15,7 @@
 #include <string>
 
 typedef
-std::function<void(const char*, error*)>
+std::function<void(char*, error*)>
 ConfigSectionHandler;
 
 typedef
@@ -28,5 +28,11 @@ ParseConfigFile(
    const ConfigFileMap &sectionHandlers,
    error *err
 );
+
+ConfigSectionHandler
+MakeArgvParser(const std::function<void(int, char **, error *)> &func);
+
+ConfigSectionHandler
+MakeSingleArgParser(const std::function<void(char *, char *, error *)> &func);
 
 #endif

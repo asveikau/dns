@@ -174,3 +174,61 @@ ParseConfigFile(
 
 exit:;
 }
+
+ConfigSectionHandler
+MakeArgvParser(const std::function<void(int, char **, error *)> &func)
+{
+   return [func] (char *cmdline, error *err) -> void
+   {
+      std::vector<char *> argv;
+      try
+      {
+         char *p = cmdline;
+         while (*p)
+         {
+            argv.push_back(p);
+            while (*p && !isspace(*p))
+               ++p;
+            if (*p)
+            {
+               *p++ = 0;
+               while (isspace(*p))
+                  ++p;
+            }
+         }
+         argv.push_back(nullptr);
+      }
+      catch (std::bad_alloc)
+      {
+         ERROR_SET(err, nomem);
+      }
+
+      func(argv.size()-1, argv.data(), err);
+   exit:;
+   };
+}
+
+ConfigSectionHandler
+MakeSingleArgParser(const std::function<void(char *, char *, error *)> &func)
+{
+   return [func] (char *cmdline, error *err) -> void
+   {
+      char *p = cmdline;
+
+      while (*p && !isspace(*p))
+         ++p;
+
+      if (*p)
+      {
+         *p++ = 0;
+         while (isspace(*p))
+            ++p;
+      }
+      else
+      {
+         p = nullptr;
+      }
+
+      func(cmdline, p, err);
+   };
+}
