@@ -133,9 +133,9 @@ ParseConfigFile(
 
       if (line[0] == '[' && line[len-1] == ']')
       {
-         ++line;
          line[len-1] = 0;
-         --len;
+         ++line;
+         len -= 2;
 
          while (isspace(*line))
          {
