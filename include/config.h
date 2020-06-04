@@ -35,4 +35,12 @@ MakeArgvParser(const std::function<void(int, char **, error *)> &func);
 ConfigSectionHandler
 MakeSingleArgParser(const std::function<void(char *, char *, error *)> &func);
 
+void
+AddConfigHandler(
+   ConfigFileMap &map,
+   const char *name,
+   const ConfigSectionHandler &handler,
+   error *err
+);
+
 #endif

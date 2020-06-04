@@ -175,6 +175,51 @@ ParseConfigFile(
 exit:;
 }
 
+void
+AddConfigHandler(
+   ConfigFileMap &map,
+   const char *name,
+   const ConfigSectionHandler &handler,
+   error *err
+)
+{
+   try
+   {
+      auto str = std::string(name);
+      auto p = map.find(str);
+      if (p == map.end())
+      {
+         map[str] = handler;
+      }
+      else
+      {
+         auto inner = std::move(p->second);
+         map[str] = [handler, inner] (char *line, error *err) -> void
+         {
+            std::vector<char> copy;
+            try
+            {
+               copy.insert(copy.end(), line, line+strlen(line)+1);
+            }
+            catch (std::bad_alloc)
+            {
+               ERROR_SET(err, nomem);
+            }
+            inner(copy.data(), err);
+            ERROR_CHECK(err);
+            handler(line, err);
+            ERROR_CHECK(err);
+         exit:;
+         };
+      }
+   }
+   catch (std::bad_alloc)
+   {
+      ERROR_SET(err, nomem);
+   }
+exit:;
+}
+
 ConfigSectionHandler
 MakeArgvParser(const std::function<void(int, char **, error *)> &func)
 {
