@@ -11,6 +11,7 @@
 
 #include <common/logger.h>
 #include <common/path.h>
+#include <common/misc.h>
 
 #include <common/c++/stream.h>
 
@@ -18,6 +19,13 @@
 #include <config.h>
 
 #include <stdio.h>
+
+#if !defined(_WINDOWS)
+#include <sys/types.h>
+#include <unistd.h>
+#include <pwd.h>
+#include <grp.h>
+#endif
 
 static
 char *get_config_file(error *err);
@@ -29,6 +37,10 @@ main(int argc, char **argv)
    common::Pointer<pollster::waiter> loop;
    std::shared_ptr<dns::Server> srv;
    char *conffile = nullptr;
+   struct
+   {
+      std::string chroot, setuid, setgid;
+   } secargs;
 
    libcommon_set_argv0(argv[0]);
 
@@ -62,7 +74,42 @@ main(int argc, char **argv)
       common::Pointer<common::Stream> stream;
       ConfigFileMap map;
 
-      // TODO: initialize map
+      AddConfigHandler(
+         map,
+         "security",
+         MakeSingleArgParser(
+            [&secargs] (char *cmd, char *arg, error *err) -> void
+            {
+               size_t cmdlen = strlen(cmd)+1;
+#define WRAP_STRING(x) static const char str_##x [] = #x
+               WRAP_STRING(chroot);
+               WRAP_STRING(setuid);
+               WRAP_STRING(setgid);
+#undef WRAP_STRING
+#define CMP(x) (cmdlen == sizeof(str_##x) && !strcmp(cmd, str_##x) && arg && *arg)
+               try
+               {
+                  if (CMP(chroot))
+                     secargs.chroot = arg;
+                  else if (CMP(setuid))
+                     secargs.setgid = arg;
+                  else if (CMP(setgid))
+                     secargs.setuid = arg;
+                  else
+                     log_printf("conf: security: unrecognized command %s", cmd);
+               }
+               catch (std::bad_alloc)
+               {
+                  error_set_nomem(err);
+               }
+#undef CMP
+            }
+         ),
+         &err
+      );
+      ERROR_CHECK(&err);
+
+      // TODO: initialize map further
 
       CreateStream(conffile, "r", stream.GetAddressOf(), &err);
       ERROR_CHECK(&err);
@@ -91,6 +138,103 @@ main(int argc, char **argv)
 
    srv->StartTcp(&err);
    ERROR_CHECK(&err);
+
+#if !defined(_WINDOWS)
+   {
+      auto parseInteger = [] (const char *id, const std::function<bool(const char*, long long&)> &fn, const char *msg, error *err) -> int64_t
+      {
+         char *end = nullptr;
+         auto value = strtoll(id, &end, 10);
+         errno = 0;
+         if ((id != end && !*end) || fn(id, value))
+            return value;
+         if (errno)
+            error_set_errno(err, errno);
+         else
+            error_set_unknown(err, msg);
+         return 0;
+      };
+      auto parseUser = [parseInteger] (const char *user, error *err) -> uid_t
+      {
+         return parseInteger(
+            user,
+            [] (const char *user, long long &r) -> bool
+            {
+               auto pw = getpwnam(user);
+               if (pw)
+               {
+                  r = pw->pw_uid;
+                  return true;
+               }
+               return false;
+            },
+            "Could not lookup user",
+            err
+         );
+      };
+      auto parseGroup = [parseInteger] (const char *group, error *err) -> gid_t
+      {
+         return parseInteger(
+            group,
+            [] (const char *group, long long &r) -> bool
+            {
+               auto gr = getgrnam(group);
+               if (gr)
+               {
+                  r = gr->gr_gid;
+                  return true;
+               }
+               return false;
+            },
+            "Could not lookup group",
+            err
+         );
+      };
+      uid_t user = 0;
+      gid_t group = 0;
+
+      if (secargs.setuid.size())
+      {
+         user = parseUser(secargs.setuid.c_str(), &err);
+         if (ERROR_FAILED(&err))
+         {
+            log_printf("Cannot find user %s", secargs.setuid.c_str());
+            goto exit;
+         }
+      }
+
+      if (secargs.setgid.size())
+      {
+         group = parseGroup(secargs.setgid.c_str(), &err);
+         if (ERROR_FAILED(&err))
+         {
+            log_printf("Cannot find group %s", secargs.setgid.c_str());
+            goto exit;
+         }
+      }
+
+      if (secargs.chroot.size() && (chroot(secargs.chroot.c_str()) || chdir("/")))
+      {
+         int e = errno;
+         log_printf("Cannot chroot into %s", secargs.chroot.c_str());
+         ERROR_SET(&err, errno, e);
+      }
+
+      if (secargs.setgid.size() && setgid(group))
+      {
+         int e = errno;
+         log_printf("Failed to setgid to %s", secargs.setgid.c_str());
+         ERROR_SET(&err, errno, e);
+      }
+
+      if (secargs.setuid.size() && setuid(user))
+      {
+         int e = errno;
+         log_printf("Failed to setuid to %s", secargs.setuid.c_str());
+         ERROR_SET(&err, errno, e);
+      }
+   }
+#endif
 
    for (;;)
    {
