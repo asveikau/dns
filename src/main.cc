@@ -112,7 +112,8 @@ main(int argc, char **argv)
       );
       ERROR_CHECK(&err);
 
-      // TODO: initialize map further
+      srv->AttachConfig(map, &err);
+      ERROR_CHECK(&err);
 
       CreateStream(conffile, "r", stream.GetAddressOf(), &err);
       ERROR_CHECK(&err);
@@ -121,16 +122,6 @@ main(int argc, char **argv)
       ERROR_CHECK(&err);
 
       free(conffile);
-   }
-
-   {
-      struct sockaddr_in in;
-      pollster::sockaddr_set_af(&in);
-      in.sin_addr.s_addr = 0x08080808U;
-      in.sin_port = htons(853);
-
-      srv->AddForwardServer("dns.google", (struct sockaddr*)&in, dns::Protocol::DnsOverTls, &err);
-      ERROR_CHECK(&err);
    }
 
    srv->StartUdp(AF_INET, &err);

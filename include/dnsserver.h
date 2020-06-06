@@ -21,6 +21,7 @@
 #include <pollster/sockapi.h>
 
 #include <dnsreqmap.h>
+#include <config.h>
 
 namespace dns {
 
@@ -51,6 +52,9 @@ public:
 
    void
    Initialize(error *err);
+
+   void
+   AttachConfig(ConfigFileMap& map, error *err);
 
    void
    StartUdp(int af, error *err)
@@ -120,6 +124,7 @@ private:
    RequestMap<bool> udpDeDupe;
    RequestMap<std::shared_ptr<ForwardClientState>> forwardReqs;
    struct rng_state *rng;
+   std::string searchPath;
 
    void
    TryForwardPacket(

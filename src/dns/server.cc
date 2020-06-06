@@ -6,8 +6,12 @@
  copyright notice and this permission notice appear in all copies.
 */
 
+#include <pollster/socket.h>
+
 #include <dnsserver.h>
 #include <dnsmsg.h>
+
+#include <common/logger.h>
 
 void
 dns::Server::Initialize(error *err)
@@ -103,4 +107,122 @@ errorReply:
       }
       error_clear(err);
    }
+}
+
+void
+dns::Server::AttachConfig(ConfigFileMap &map, error *err)
+{
+   AddConfigHandler(
+      map,
+      "dns",
+      MakeArgvParser(
+         [this] (int argc, char **argv, error *err) -> void
+         {
+            if (!argc)
+               return;
+            const char *cmd = argv[0];
+            size_t cmdlen = strlen(cmd)+1;
+#define WRAP_STRING(x) static const char str_##x [] = #x
+            WRAP_STRING(search);
+            WRAP_STRING(nameserver);
+#undef WRAP_STRING
+#define CMP(x) (cmdlen == sizeof(str_##x) && !strcmp(cmd, str_##x))
+            try
+            {
+               if (CMP(search))
+               {
+                  if (argc > 1)
+                     searchPath = argv[1];
+               }
+               else if (CMP(nameserver))
+               {
+                  const char *proto = nullptr;
+                  const char *host = nullptr;
+                  int port = 53;
+
+                  union
+                  {
+                     struct sockaddr sa;
+                     struct sockaddr_in in;
+                     struct sockaddr_in6 in6;
+                  } addr;
+
+                  auto try_parse = [&addr, &port] (const char *str) -> bool
+                  {
+                     pollster::sockaddr_set_af(&addr.sa, AF_INET);
+
+                     if (pollster::string_to_sockaddr(&addr.sa, str))
+                     {
+                        addr.in.sin_port = htons(port);
+                        return true;
+                     }
+
+                     pollster::sockaddr_set_af(&addr.sa, AF_INET6);
+
+                     if (pollster::string_to_sockaddr(&addr.sa, str))
+                     {
+                        addr.in6.sin6_port = htons(port);
+                        return true;
+                     }
+
+                     return false;
+                  };
+
+                  dns::Protocol protoEnum;
+
+                  if (argc < 2)
+                     return;
+
+                  proto = argv[1];
+                  host = argv[2];
+
+                  if (!strcmp(proto, "dns"))
+                     protoEnum = dns::Protocol::Plaintext;
+                  else if (!strcmp(proto, "tls"))
+                  {
+                     protoEnum = dns::Protocol::DnsOverTls;
+                     port = 853;
+                  }
+                  else
+                  {
+                     log_printf("unrecognized protocol: %s", proto);
+                     return;
+                  }
+
+                  if (try_parse(host))
+                  {
+                     // Host is actually an IP.
+                     //
+                     host = nullptr;
+                     AddForwardServer(host, &addr.sa, protoEnum, err);
+                     ERROR_CHECK(err);
+                  }
+
+                  for (int i=3; i<argc; ++i)
+                  {
+                     const char *ip = argv[i];
+                     if (!try_parse(ip))
+                     {
+                        log_printf("Could not parse address: %s", ip);
+                        continue;
+                     }
+                     AddForwardServer(host, &addr.sa, protoEnum, err);
+                     ERROR_CHECK(err);
+                  }
+               }
+               else
+                  log_printf("conf: dns: unrecognized command %s", cmd);
+            }
+            catch (std::bad_alloc)
+            {
+               error_set_nomem(err);
+            }
+#undef CMP
+         exit:;
+         }
+      ),
+      err
+   );
+   ERROR_CHECK(err);
+exit:;
 }
