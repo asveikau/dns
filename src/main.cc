@@ -220,6 +220,11 @@ main(int argc, char **argv)
       {
          pollster::InitSslLibrary(&err);
          ERROR_CHECK(&err);
+
+#if defined(__APPLE__)
+         log_printf("Warning: chroot not working on macOS due to SecureTransport limitatons");
+         secargs.chroot.resize(0);
+#endif
       }
 
       if (secargs.chroot.size() && (chroot(secargs.chroot.c_str()) || chdir("/")))
