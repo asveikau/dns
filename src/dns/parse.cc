@@ -268,6 +268,29 @@ dns::ParseMessage(
 exit:;
 }
 
+#if defined(__clang__) && \
+    __clang_major__ < 7 || (__clang_major__ == 7 && __clang_minor__ == 3)
+#define PRINTF_CLOSURE_HACK
+// This was previously a closure, but 7.3.0 on Mac was rejecting varargs closures with:
+// error: 'va_start' used in function with fixed args
+static void
+append_printf_helper(char *&cur, size_t &avail, const char *fmt, ...)
+{
+   if (avail <= 1)
+      return;
+
+   va_list ap;
+   va_start(ap, fmt);
+   vsnprintf(cur, avail, fmt, ap);
+   va_end(ap);
+
+   auto l = strlen(cur);
+   cur += l;
+   avail -= l;
+}
+#define append_printf(FMT, ...) append_printf_helper(cur, avail, FMT, ##__VA_ARGS__)
+#endif
+
 const char *
 dns::Message::Describe(char *buf, size_t len)
 {
@@ -275,6 +298,7 @@ dns::Message::Describe(char *buf, size_t len)
    size_t avail = len;
    const auto &msg = *this;
 
+#ifndef PRINTF_CLOSURE_HACK
    auto append_printf = [&cur, &avail] (const char *fmt, ...) -> void
    {
       if (avail <= 1)
@@ -289,6 +313,7 @@ dns::Message::Describe(char *buf, size_t len)
       cur += l;
       avail -= l;
    };
+#endif
 
    append_printf(
       "request ID:          %.4hx\n"
@@ -341,7 +366,13 @@ dns::Message::Describe(char *buf, size_t len)
       append_printf("\n");
    }
 
-   auto doRec = [&append_printf] (const char *label, const dns::Record *rec, const dns::I16 &nrec) -> void
+   auto doRec =
+#ifndef PRINTF_CLOSURE_HACK
+   [&append_printf]
+#else
+   [&cur, &avail]
+#endif
+   (const char *label, const dns::Record *rec, const dns::I16 &nrec) -> void
    {
       for (auto end = rec+nrec.Get(); rec < end; ++rec)
       {
@@ -383,6 +414,7 @@ dns::Message::Describe(char *buf, size_t len)
    return buf;
 }
 
+#undef append_printf
 
 const char *
 dns::TypeToString(uint16_t type)
