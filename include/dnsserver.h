@@ -50,6 +50,9 @@ public:
    }
 
    void
+   Initialize(error *err);
+
+   void
    StartUdp(int af, error *err)
    {
       StartUdp(af, MessageMode::Both, err);

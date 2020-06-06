@@ -10,6 +10,17 @@
 #include <dnsmsg.h>
 
 void
+dns::Server::Initialize(error *err)
+{
+   if (!rng)
+   {
+      rng_init(&rng, err);
+      ERROR_CHECK(err);
+   }
+exit:;
+}
+
+void
 dns::Server::HandleMessage(
    MessageMode mode,
    void *buf, size_t len,

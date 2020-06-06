@@ -66,6 +66,9 @@ main(int argc, char **argv)
       ERROR_SET(&err, nomem);
    }
 
+   srv->Initialize(&err);
+   ERROR_CHECK(&err);
+
    conffile = get_config_file(&err);
    error_clear(&err);
 
@@ -211,6 +214,12 @@ main(int argc, char **argv)
             log_printf("Cannot find group %s", secargs.setgid.c_str());
             goto exit;
          }
+      }
+
+      if (secargs.chroot.size())
+      {
+         pollster::InitSslLibrary(&err);
+         ERROR_CHECK(&err);
       }
 
       if (secargs.chroot.size() && (chroot(secargs.chroot.c_str()) || chdir("/")))
