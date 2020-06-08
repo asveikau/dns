@@ -9,6 +9,7 @@
 #include <dnsproto.h>
 #include <dnsmsg.h>
 
+#include <algorithm>
 #include <map>
 
 void
