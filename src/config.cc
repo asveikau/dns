@@ -12,91 +12,7 @@
 #include <string.h>
 #include <vector>
 
-namespace {
-
-class StreamReader
-{
-   common::Pointer<common::Stream> stream;
-   char buf[1024];
-   size_t off;
-   size_t inBuf;
-   std::vector<unsigned char> lineBuf;
-public:
-   StreamReader(common::Stream *str) : stream(str), off(0), inBuf(0) {}
-   StreamReader(const StreamReader &) = delete;
-
-   int
-   ReadChar(error *err)
-   {
-      int c = EOF;
-
-      if (off == inBuf)
-      {
-         off = inBuf = 0;
-
-         inBuf = stream->Read(buf, sizeof(buf), err);
-         ERROR_CHECK(err);
-         if (!inBuf)
-            goto exit;
-      }
-
-      c = buf[off++];
-   exit:
-      return c;
-   }
-
-   char *
-   ReadLine(error *err)
-   {
-      // TODO: if we can find a line terminator within the current buffer,
-      // return it directly.
-
-      lineBuf.resize(0);
-
-      for (;;)
-      {
-         int c = ReadChar(err);
-         ERROR_CHECK(err);
-
-         switch (c)
-         {
-         case EOF:
-            if (!lineBuf.size())
-               goto exit;
-            c = 0;
-            break;
-         case '\r':
-            // Try to convert CRLF to LF.
-            c = ReadChar(err);
-            ERROR_CHECK(err);
-            // Put back any non-'\n' char
-            if (c != EOF && c != '\n')
-               off--;
-            // fall through
-         case '\n':
-            c = 0;
-            break;
-         }
-
-         try
-         {
-            lineBuf.push_back(c);
-         }
-         catch (std::bad_alloc)
-         {
-            ERROR_SET(err, nomem);
-         }
-         if (c == 0)
-            break;
-      }
-
-      return (char*)lineBuf.data();
-   exit:
-      return nullptr;
-   }
-};
-
-} // end namespace
+#include <common/c++/linereader.h>
 
 void
 ParseConfigFile(
@@ -105,7 +21,7 @@ ParseConfigFile(
    error *err
 )
 {
-   StreamReader reader(stream);
+   common::LineReader reader(stream);
    char *line = nullptr;
    const ConfigSectionHandler *fn = nullptr;
 
