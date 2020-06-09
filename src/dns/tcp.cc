@@ -154,15 +154,16 @@ exit:;
 } // end namespace
 
 void
-dns::Server::StartTcp(error *err)
+dns::Server::StartTcp(pollster::Certificate *cert, error *err)
 {
    static pollster::StreamServer srv;
 
    if (!srv.on_client)
    {
       std::weak_ptr<Server> weak = shared_from_this();
+      common::Pointer<pollster::Certificate> certRc = cert;
 
-      srv.on_client = [weak] (const std::shared_ptr<pollster::StreamSocket> &fd, error *err) -> void
+      srv.on_client = [weak, certRc] (const std::shared_ptr<pollster::StreamSocket> &fd, error *err) -> void
       {
          CreateTcp(
             weak,
@@ -175,10 +176,23 @@ dns::Server::StartTcp(error *err)
             err
          );
          ERROR_CHECK(err);
-         exit:;
+
+         if (certRc.Get())
+         {
+            pollster::SslArgs ssl;
+
+            ssl.ServerMode = true;
+            ssl.Certificate = certRc;
+
+            pollster::CreateSslFilter(ssl, fd->filter, err);
+            ERROR_CHECK(err);
+            fd->CheckFilter(err);
+            ERROR_CHECK(err);
+         }
+      exit:;
       };
 
-      srv.AddPort(53, err);
+      srv.AddPort(cert ? 853 : 53, err);
       ERROR_CHECK(err);
    }
 exit:;

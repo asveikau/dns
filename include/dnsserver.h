@@ -63,7 +63,7 @@ public:
    }
 
    void
-   StartTcp(error *err);
+   StartTcp(pollster::Certificate *cert, error *err);
 
    void
    AddForwardServer(

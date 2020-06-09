@@ -142,8 +142,14 @@ main(int argc, char **argv)
    if (ERROR_FAILED(&err))
       error_clear(&err);
 
-   srv->StartTcp(&err);
+   srv->StartTcp(nullptr, &err);
    ERROR_CHECK(&err);
+
+   if (secargs.cert.Get())
+   {
+      srv->StartTcp(secargs.cert.Get(), &err);
+      ERROR_CHECK(&err);
+   }
 
 #if !defined(_WINDOWS)
    {
