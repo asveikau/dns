@@ -40,6 +40,7 @@ main(int argc, char **argv)
    struct
    {
       std::string chroot, setuid, setgid;
+      common::Pointer<pollster::Certificate> cert;
    } secargs;
 
    libcommon_set_argv0(argv[0]);
@@ -88,6 +89,7 @@ main(int argc, char **argv)
                WRAP_STRING(chroot);
                WRAP_STRING(setuid);
                WRAP_STRING(setgid);
+               WRAP_STRING(certificate);
 #undef WRAP_STRING
 #define CMP(x) (cmdlen == sizeof(str_##x) && !strcmp(cmd, str_##x) && arg && *arg)
                try
@@ -98,14 +100,24 @@ main(int argc, char **argv)
                      secargs.setgid = arg;
                   else if (CMP(setgid))
                      secargs.setuid = arg;
+                  else if (CMP(certificate))
+                  {
+                     common::Pointer<common::Stream> pem;
+
+                     common::CreateStream(arg, "r", pem.GetAddressOf(), err);
+                     ERROR_CHECK(err);
+                     pollster::CreateCertificate(pem.Get(), secargs.cert.GetAddressOf(), err);
+                     ERROR_CHECK(err);
+                  }
                   else
                      log_printf("conf: security: unrecognized command %s", cmd);
                }
                catch (std::bad_alloc)
                {
-                  error_set_nomem(err);
+                  ERROR_SET(err, nomem);
                }
 #undef CMP
+         exit:;
             }
          ),
          &err
