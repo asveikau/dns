@@ -156,7 +156,8 @@ exit:;
 void
 dns::Server::StartTcp(pollster::Certificate *cert, error *err)
 {
-   static pollster::StreamServer srv;
+   static pollster::StreamServer srvPlaintext, srvCrypt;
+   auto &srv = cert ? srvCrypt : srvPlaintext;
 
    if (!srv.on_client)
    {
