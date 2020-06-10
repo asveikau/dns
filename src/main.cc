@@ -97,9 +97,9 @@ main(int argc, char **argv)
                   if (CMP(chroot))
                      secargs.chroot = arg;
                   else if (CMP(setuid))
-                     secargs.setgid = arg;
-                  else if (CMP(setgid))
                      secargs.setuid = arg;
+                  else if (CMP(setgid))
+                     secargs.setgid = arg;
                   else if (CMP(certificate))
                   {
                      common::Pointer<common::Stream> pem;
