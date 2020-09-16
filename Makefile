@@ -7,9 +7,15 @@ WINDOWS_SUBSYSTEM=console
 MAKEFILES_ROOT?=submodules/makefiles/
 LIBCOMMON_ROOT?=submodules/common/
 LIBPOLLSTER_ROOT?=submodules/pollster/
+LIBSQLITEWRAPPER_ROOT?=submodules/sqlitewrapper/
 -include ${LIBPOLLSTER_ROOT}Makefile.inc
-CFLAGS += -Iinclude -I$(LIBCOMMON_ROOT)include -I$(LIBPOLLSTER_ROOT)include
+-include ${LIBSQLITEWRAPPER_ROOT}Makefile.inc
+CFLAGS += -Iinclude \
+          -I$(LIBCOMMON_ROOT)include \
+          -I$(LIBPOLLSTER_ROOT)include \
+          -I$(LIBSQLITEWRAPPER_ROOT)include
 CXXFLAGS += $(CFLAGS)
+LDFLAGS += -L$(LIBSQLITEWRAPPER_ROOT) -lsqlitewrapper
 LDFLAGS += -L$(LIBPOLLSTER_ROOT) -lpollster
 LDFLAGS += -L$(LIBCOMMON_ROOT) -lcommon
 
@@ -31,7 +37,7 @@ OBJS += $(shell $(SRC2OBJ) $(SRCFILES))
 
 all-phony: $(APPNAME)$(EXESUFFIX)
 
-$(APPNAME)$(EXESUFFIX): $(LIBCOMMON) $(LIBPOLLSTER) $(OBJS) $(XP_SUPPORT_OBJS)
+$(APPNAME)$(EXESUFFIX): $(LIBCOMMON) $(LIBPOLLSTER) $(LIBSQLITEWRAPPER) $(OBJS) $(XP_SUPPORT_OBJS)
 	$(CXX) -o $@ $(OBJS) $(TIMESTAMP_OBJ) $(LDFLAGS)
 	$(STRIP) $@
 
