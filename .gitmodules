@@ -7,3 +7,6 @@
 [submodule "submodules/common"]
 	path = submodules/common
 	url = git@github.com:asveikau/common.git
+[submodule "submodules/sqlitewrapper"]
+	path = submodules/sqlitewrapper
+	url = git@github.com:asveikau/sqlitewrapper.git
