@@ -211,7 +211,7 @@ main(int argc, char **argv)
          if (ERROR_FAILED(&err))
          {
             log_printf("Cannot find user %s", secargs.setuid.c_str());
-            goto exit;
+            secargs.setuid.resize(0);
          }
       }
 
@@ -221,7 +221,7 @@ main(int argc, char **argv)
          if (ERROR_FAILED(&err))
          {
             log_printf("Cannot find group %s", secargs.setgid.c_str());
-            goto exit;
+            secargs.setgid.resize(0);
          }
       }
 
