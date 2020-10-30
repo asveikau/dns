@@ -117,6 +117,16 @@ dns::Server::TryCache(
             //
             goto exit;
          }
+         else if (!time)
+         {
+            // Use TTL field from cache, but we don't have a write time for
+            // this cache record
+            //
+            time = current_time;
+
+            if (!ttl)
+               ttl = 5 * 60;
+         }
 
          if (rc != (int)ResponseCode::NoError)
          {
