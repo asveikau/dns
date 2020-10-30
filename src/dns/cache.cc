@@ -18,6 +18,28 @@
 // with the idea that perhaps later it persists on-disk between server restarts.
 //
 
+static std::string
+SanitizeHost(const std::string &str, error *err)
+{
+   // Force ASCII lowercase to do locale-insensitive folding for caching
+   // purposes.  No fancy localization.
+   //
+   try
+   {
+      std::string r;
+      for (auto ch : str)
+      {
+         r.push_back(ch >= 'A' && ch <= 'Z' ? ch + 'a'-'A' : ch);
+      }
+      return r;
+   }
+   catch (const std::bad_alloc &)
+   {
+      error_set_nomem(err);
+      return std::string();
+   }
+}
+
 void
 dns::Server::InitializeCache(error *err)
 {
@@ -60,9 +82,13 @@ dns::Server::TryCache(
    error *err = &errStorage;
    bool found = false;
    sqlite::statement stmt;
+   std::string host;
 
    if (!msg.Header || msg.Questions.size() != 1)
       goto exit;
+
+   host = SanitizeHost(msg.Questions[0].Name, err);
+   ERROR_CHECK(err);
 
    InitializeCache(err);
    ERROR_CHECK(err);
@@ -76,11 +102,13 @@ dns::Server::TryCache(
    );
    ERROR_CHECK(err);
 
-   stmt.bind(0, msg.Questions[0].Name, err);
-   ERROR_CHECK(err);
-   stmt.bind(1, (int64_t)msg.Questions[0].Attrs->Type.Get(), err);
-   ERROR_CHECK(err);
-   stmt.bind(2, (int64_t)msg.Questions[0].Attrs->Class.Get(), err);
+   stmt.bind_multi(
+      err,
+      0,
+      host,
+      (int64_t)msg.Questions[0].Attrs->Type.Get(),
+      (int64_t)msg.Questions[0].Attrs->Class.Get()
+   );
    ERROR_CHECK(err);
 
    if (stmt.step(err))
@@ -173,6 +201,7 @@ dns::Server::CacheReply(const void *buf, size_t len)
    error *err = &errStorage;
    sqlite::statement stmt;
    uint64_t current_time = get_current_time();
+   std::string host;
 
    InitializeCache(err);
    ERROR_CHECK(err);
@@ -183,6 +212,9 @@ dns::Server::CacheReply(const void *buf, size_t len)
    if (!msg.Header || msg.Questions.size() != 1)
       goto exit;
 
+   host = SanitizeHost(msg.Questions[0].Name, err);
+   ERROR_CHECK(err);
+
    cacheDb.prepare(
       "DELETE FROM dns_cache WHERE name = ? AND queried_type = ? AND queried_class = ?",
       stmt,
@@ -191,7 +223,7 @@ dns::Server::CacheReply(const void *buf, size_t len)
 
    stmt.bind_multi(
       err, 0,
-      msg.Questions[0].Name,
+      host,
       (int64_t)msg.Questions[0].Attrs->Type.Get(),
       (int64_t)msg.Questions[0].Attrs->Class.Get()
    );
@@ -210,7 +242,7 @@ dns::Server::CacheReply(const void *buf, size_t len)
       ERROR_CHECK(err);
       stmt.bind_multi(
          err, 0,
-         msg.Questions[0].Name,
+         host,
          (int64_t)msg.Questions[0].Attrs->Type.Get(),
          (int64_t)msg.Questions[0].Attrs->Class.Get(),
          (int64_t)msg.Header->ResponseCode,
@@ -240,7 +272,7 @@ dns::Server::CacheReply(const void *buf, size_t len)
 
          stmt.bind_multi(
             err, 0,
-            msg.Questions[0].Name,
+            host,
             (int64_t)msg.Questions[0].Attrs->Type.Get(),
             (int64_t)msg.Questions[0].Attrs->Class.Get(),
             (int64_t)msg.Header->ResponseCode,
