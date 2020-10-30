@@ -362,8 +362,9 @@ dns::MessageWriter::AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count
       r = &vec[vec.size()-1];
       auto oldSize = rattrs.size();
       rattrs.resize(oldSize + offsetof(RecordAttrs, Data) + payload);
-      r->Attrs = (RecordAttrs*)((char*)oldAttrs + oldSize);
+      r->Attrs = (RecordAttrs*)((char*)rattrs.data() + oldSize);
       r->Attrs->Length.Put(payload);
+      r->Attrs = (RecordAttrs*)((char*)oldAttrs + oldSize);
    }
    catch (std::bad_alloc)
    {

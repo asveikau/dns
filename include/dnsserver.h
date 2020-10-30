@@ -19,6 +19,7 @@
 #include <common/crypto/rng.h>
 
 #include <pollster/sockapi.h>
+#include <sqlitewrapper.h>
 
 #include <dnsreqmap.h>
 #include <config.h>
@@ -125,6 +126,7 @@ private:
    RequestMap<std::shared_ptr<ForwardClientState>> forwardReqs;
    struct rng_state *rng;
    std::string searchPath;
+   sqlite::sqlite cacheDb;
 
    void
    TryForwardPacket(
@@ -137,6 +139,9 @@ private:
 
    void
    TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, error *err);
+
+   void
+   InitializeCache(error *err);
 
    bool
    TryCache(
