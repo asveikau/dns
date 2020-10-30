@@ -14,7 +14,8 @@
 #include <common/time.h>
 
 //
-// These are the entry points for future expansion.  For now there is no cache.
+// For now, the cache is an in-memory sqlite database.  It is written that way
+// with the idea that perhaps later it persists on-disk between server restarts.
 //
 
 void
@@ -39,7 +40,6 @@ dns::Server::InitializeCache(error *err)
 
    if (cacheDb.is_open())
       goto exit;
-
 
    cacheDb.open(":memory:", SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, nullptr, err);
    ERROR_CHECK(err);
