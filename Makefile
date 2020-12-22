@@ -24,6 +24,7 @@ SRCFILES += \
    src/main.cc \
    src/dns/cache.cc \
    src/dns/forward.cc \
+   src/dns/localentry.cc \
    src/dns/parse.cc \
    src/dns/reqmap.cc \
    src/dns/server.cc \

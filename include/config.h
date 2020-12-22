@@ -13,9 +13,15 @@
 #include <functional>
 #include <map>
 #include <string>
+#include <vector>
+
+struct ConfigFileState
+{
+   std::vector<std::function<void(error*)>> PendingActions;
+};
 
 typedef
-std::function<void(char*, error*)>
+std::function<void(char*, ConfigFileState&, error*)>
 ConfigSectionHandler;
 
 typedef
@@ -30,10 +36,10 @@ ParseConfigFile(
 );
 
 ConfigSectionHandler
-MakeArgvParser(const std::function<void(int, char **, error *)> &func);
+MakeArgvParser(const std::function<void(int, char **, ConfigFileState&, error *)> &func);
 
 ConfigSectionHandler
-MakeSingleArgParser(const std::function<void(char *, char *, error *)> &func);
+MakeSingleArgParser(const std::function<void(char *, char *, ConfigFileState&, error *)> &func);
 
 void
 AddConfigHandler(

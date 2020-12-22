@@ -21,6 +21,7 @@ ParseConfigFile(
    error *err
 )
 {
+   ConfigFileState state;
    common::LineReader reader(stream);
    char *line = nullptr;
    const ConfigSectionHandler *fn = nullptr;
@@ -82,11 +83,17 @@ ParseConfigFile(
 
       if (fn && *fn)
       {
-         (*fn)(line, err);
+         (*fn)(line, state, err);
          ERROR_CHECK(err);
       }
    }
    ERROR_CHECK(err);
+
+   for (auto &fn : state.PendingActions)
+   {
+      fn(err);
+      ERROR_CHECK(err);
+   }
 
 exit:;
 }
@@ -110,7 +117,7 @@ AddConfigHandler(
       else
       {
          auto inner = std::move(p->second);
-         map[str] = [handler, inner] (char *line, error *err) -> void
+         map[str] = [handler, inner] (char *line, ConfigFileState& state, error *err) -> void
          {
             std::vector<char> copy;
             try
@@ -121,9 +128,9 @@ AddConfigHandler(
             {
                ERROR_SET(err, nomem);
             }
-            inner(copy.data(), err);
+            inner(copy.data(), state, err);
             ERROR_CHECK(err);
-            handler(line, err);
+            handler(line, state, err);
             ERROR_CHECK(err);
          exit:;
          };
@@ -137,9 +144,9 @@ exit:;
 }
 
 ConfigSectionHandler
-MakeArgvParser(const std::function<void(int, char **, error *)> &func)
+MakeArgvParser(const std::function<void(int, char **, ConfigFileState&, error *)> &func)
 {
-   return [func] (char *cmdline, error *err) -> void
+   return [func] (char *cmdline, ConfigFileState& state, error *err) -> void
    {
       std::vector<char *> argv;
       try
@@ -164,15 +171,15 @@ MakeArgvParser(const std::function<void(int, char **, error *)> &func)
          ERROR_SET(err, nomem);
       }
 
-      func(argv.size()-1, argv.data(), err);
+      func(argv.size()-1, argv.data(), state, err);
    exit:;
    };
 }
 
 ConfigSectionHandler
-MakeSingleArgParser(const std::function<void(char *, char *, error *)> &func)
+MakeSingleArgParser(const std::function<void(char *, char *, ConfigFileState& state, error *)> &func)
 {
-   return [func] (char *cmdline, error *err) -> void
+   return [func] (char *cmdline, ConfigFileState& state, error *err) -> void
    {
       char *p = cmdline;
 
@@ -190,6 +197,6 @@ MakeSingleArgParser(const std::function<void(char *, char *, error *)> &func)
          p = nullptr;
       }
 
-      func(cmdline, p, err);
+      func(cmdline, p, state, err);
    };
 }

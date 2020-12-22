@@ -82,7 +82,7 @@ main(int argc, char **argv)
          map,
          "security",
          MakeSingleArgParser(
-            [&secargs] (char *cmd, char *arg, error *err) -> void
+            [&secargs] (char *cmd, char *arg, ConfigFileState& state,error *err) -> void
             {
                size_t cmdlen = strlen(cmd)+1;
 #define WRAP_STRING(x) static const char str_##x [] = #x
@@ -134,6 +134,7 @@ main(int argc, char **argv)
       ERROR_CHECK(&err);
 
       free(conffile);
+      conffile = nullptr;
    }
 
    srv->StartUdp(AF_INET, &err);
@@ -266,6 +267,7 @@ main(int argc, char **argv)
    }
 
 exit:
+   free(conffile);
    return ERROR_FAILED(&err) ? 1 : 0;
 }
 

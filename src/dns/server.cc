@@ -13,6 +13,8 @@
 
 #include <common/logger.h>
 
+#include <string.h>
+
 void
 dns::Server::Initialize(error *err)
 {
@@ -116,7 +118,7 @@ dns::Server::AttachConfig(ConfigFileMap &map, error *err)
       map,
       "dns",
       MakeArgvParser(
-         [this] (int argc, char **argv, error *err) -> void
+         [this] (int argc, char **argv, ConfigFileState& state, error *err) -> void
          {
             if (!argc)
                return;
@@ -218,6 +220,68 @@ dns::Server::AttachConfig(ConfigFileMap &map, error *err)
                error_set_nomem(err);
             }
 #undef CMP
+         exit:;
+         }
+      ),
+      err
+   );
+   ERROR_CHECK(err);
+   AddConfigHandler(
+      map,
+      "hosts",
+      MakeArgvParser(
+         [this] (int argc, char **argv, ConfigFileState& state, error *err) -> void
+         {
+            try
+            {
+               std::string hostname = argv[0];
+               auto entry = ParseLocalEntry(argc-1, argv+1, err);
+               ERROR_CHECK(err);
+               state.PendingActions.push_back(
+                  [this, hostname, entry] (error *err) mutable -> void
+                  {
+                     auto trimDots = [&] () -> void
+                     {
+                        while (hostname.length() && hostname[hostname.length()-1] == '.')
+                        {
+                           hostname.resize(hostname.length()-1);
+                        }
+                     };
+                     if (!strchr(hostname.c_str(), '.') && searchPath.length())
+                     {
+                        trimDots();
+                        if (!hostname.length())
+                           goto exit;
+                        try
+                        {
+                           hostname += '.';
+                           hostname += searchPath;
+                        }
+                        catch (const std::bad_alloc &)
+                        {
+                           ERROR_SET(err, nomem);
+                        }
+                     }
+                     trimDots();
+                     if (!hostname.length())
+                        goto exit;
+                     hostname = SanitizeHost(hostname, err);
+                     ERROR_CHECK(err);
+                     try
+                     {
+                        localEntries[hostname] = std::move(entry);
+                     }
+                     catch (const std::bad_alloc &)
+                     {
+                        ERROR_SET(err, nomem);
+                     }
+                  exit:;
+                  }
+               );
+            }
+            catch (const std::bad_alloc &)
+            {
+            }
          exit:;
          }
       ),

@@ -18,8 +18,8 @@
 // with the idea that perhaps later it persists on-disk between server restarts.
 //
 
-static std::string
-SanitizeHost(const std::string &str, error *err)
+std::string
+dns::Server::SanitizeHost(const std::string &str, error *err)
 {
    // Force ASCII lowercase to do locale-insensitive folding for caching
    // purposes.  No fancy localization.
@@ -89,6 +89,9 @@ dns::Server::TryCache(
 
    host = SanitizeHost(msg.Questions[0].Name, err);
    ERROR_CHECK(err);
+
+   if (TryLocalEntry(host, msg, reply))
+      goto exit;
 
    InitializeCache(err);
    ERROR_CHECK(err);

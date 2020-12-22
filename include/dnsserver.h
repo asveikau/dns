@@ -41,6 +41,11 @@ enum class Protocol
    DnsOverTls,
 };
 
+struct LocalEntry
+{
+   std::vector<std::pair<Type, std::vector<char>>> Addrs;
+};
+
 class Server : public std::enable_shared_from_this<Server>
 {
 public:
@@ -127,6 +132,7 @@ private:
    struct rng_state *rng;
    std::string searchPath;
    sqlite::sqlite cacheDb;
+   std::map<std::string, LocalEntry> localEntries;
 
    void
    TryForwardPacket(
@@ -151,6 +157,19 @@ private:
 
    void
    CacheReply(const void *buf, size_t len);
+
+   std::string
+   SanitizeHost(const std::string &str, error *err);
+
+   LocalEntry
+   ParseLocalEntry(int argc, char **argv, error *err);
+
+   bool
+   TryLocalEntry(
+      const std::string sanitizedHostname,
+      const Message &msg,
+      const std::function<void(const void *, size_t, error *)> &reply
+   );
 
    void
    SendUdp(
