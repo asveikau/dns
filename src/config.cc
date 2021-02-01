@@ -73,7 +73,7 @@ ParseConfigFile(
             else
                fn = nullptr;
          }
-         catch (std::bad_alloc)
+         catch (const std::bad_alloc&)
          {
             ERROR_SET(err, nomem);
          }
@@ -124,7 +124,7 @@ AddConfigHandler(
             {
                copy.insert(copy.end(), line, line+strlen(line)+1);
             }
-            catch (std::bad_alloc)
+            catch (const std::bad_alloc&)
             {
                ERROR_SET(err, nomem);
             }
@@ -136,7 +136,7 @@ AddConfigHandler(
          };
       }
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       ERROR_SET(err, nomem);
    }
@@ -166,7 +166,7 @@ MakeArgvParser(const std::function<void(int, char **, ConfigFileState&, error *)
          }
          argv.push_back(nullptr);
       }
-      catch (std::bad_alloc)
+      catch (const std::bad_alloc&)
       {
          ERROR_SET(err, nomem);
       }

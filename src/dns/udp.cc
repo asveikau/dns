@@ -68,7 +68,7 @@ dns::Server::StartUdp(int af, MessageMode mode, error *err)
    {
       fd = std::make_shared<common::SocketHandle>();
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       ERROR_SET(err, nomem);
    }

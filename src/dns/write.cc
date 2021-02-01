@@ -102,7 +102,7 @@ struct StringTable
             {
                allNodes.push_back(nn->data);
             }
-            catch (std::bad_alloc)
+            catch (const std::bad_alloc&)
             {
                delete nn->data;
                nn->data = nullptr;
@@ -338,7 +338,7 @@ dns::MessageWriter::Serialize(error *err)
          goto retry;
       }
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       ERROR_SET(err, nomem);
    }
@@ -366,7 +366,7 @@ dns::MessageWriter::AddRecord(Record *&ptr, std::vector<Record> &vec, I16 &count
       r->Attrs->Length.Put(payload);
       r->Attrs = (RecordAttrs*)((char*)oldAttrs + oldSize);
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       if (r)
       {
@@ -414,7 +414,7 @@ dns::MessageWriter::AddQuestion(error *err)
       qattrs.resize(qattrs.size() + 1);
       r->Attrs = oldAttrs + qattrs.size() - 1;
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       if (r)
       {

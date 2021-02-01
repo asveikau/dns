@@ -62,7 +62,7 @@ main(int argc, char **argv)
    {
       srv = std::make_shared<dns::Server>();
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       ERROR_SET(&err, nomem);
    }
@@ -112,7 +112,7 @@ main(int argc, char **argv)
                   else
                      log_printf("conf: security: unrecognized command %s", cmd);
                }
-               catch (std::bad_alloc)
+               catch (const std::bad_alloc&)
                {
                   ERROR_SET(err, nomem);
                }

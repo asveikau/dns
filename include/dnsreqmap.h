@@ -104,7 +104,7 @@ public:
          state.value = value;
          map[id].push_back(std::move(state));
       }
-      catch (std::bad_alloc)
+      catch (const std::bad_alloc&)
       {
          ERROR_SET(err, nomem);
       }
@@ -122,7 +122,7 @@ public:
          {
             *cancel = CreateCancel(addr, msg);
          }
-         catch (std::bad_alloc)
+         catch (const std::bad_alloc&)
          {
             ERROR_SET(err, nomem);
          }

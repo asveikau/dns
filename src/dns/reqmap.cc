@@ -31,7 +31,7 @@ dns::ResponseMap::OnResponse(
          if (cb)
             cb(buf, len, msg, err);
       }
-      catch (std::bad_alloc)
+      catch (const std::bad_alloc&)
       {
          ERROR_SET(err, nomem);
       }
@@ -55,7 +55,7 @@ dns::ResponseMap::OnRequest(
       {
          *resp = cb;
       }
-      catch (std::bad_alloc)
+      catch (const std::bad_alloc&)
       {
          ERROR_SET(err, nomem);
       }
@@ -66,7 +66,7 @@ dns::ResponseMap::OnRequest(
          {
             *cancel = reqs.CreateCancel(addr, msg);
          }
-         catch (std::bad_alloc)
+         catch (const std::bad_alloc&)
          {
             ERROR_SET(err, nomem);
          }

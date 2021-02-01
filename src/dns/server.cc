@@ -215,7 +215,7 @@ dns::Server::AttachConfig(ConfigFileMap &map, error *err)
                else
                   log_printf("conf: dns: unrecognized command %s", cmd);
             }
-            catch (std::bad_alloc)
+            catch (const std::bad_alloc&)
             {
                error_set_nomem(err);
             }

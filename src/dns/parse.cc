@@ -102,7 +102,7 @@ retryPostOffset:
       {
          str.append(p, p+len);
       }
-      catch (std::bad_alloc)
+      catch (const std::bad_alloc&)
       {
          ERROR_SET(err, nomem);
       }
@@ -119,7 +119,7 @@ retryPostOffset:
             {
                str.push_back('.');
             }
-            catch (std::bad_alloc)
+            catch (const std::bad_alloc&)
             {
                ERROR_SET(err, nomem);
             }
@@ -228,7 +228,7 @@ dns::ParseMessage(
       {
          m->Questions.push_back(std::move(q));
       }
-      catch (std::bad_alloc)
+      catch (const std::bad_alloc&)
       {
          ERROR_SET(err, nomem);
       }
@@ -248,7 +248,7 @@ dns::ParseMessage(
          {
             m->Records.push_back(std::move(r));
          }
-         catch (std::bad_alloc)
+         catch (const std::bad_alloc&)
          {
             ERROR_SET(err, nomem);
          }

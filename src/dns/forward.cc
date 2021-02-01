@@ -159,7 +159,7 @@ dns::Server::TryForwardPacket(const std::shared_ptr<ForwardClientState> &state, 
       if (cancel)           
          state->cancel.push_back(cancel);
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       ERROR_SET(err, nomem);
    }
@@ -237,7 +237,7 @@ dns::Server::TryForwardPacket(
          }
       };
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       ERROR_SET(err, nomem);
    }
@@ -270,7 +270,7 @@ dns::Server::TryForwardPacket(
          req = std::make_shared<ForwardClientState>();
          req->request.insert(req->request.begin(), (char*)buf, (char*)buf+len);
       }
-      catch (std::bad_alloc)
+      catch (const std::bad_alloc&)
       {
          ERROR_SET(err, nomem);
       }
@@ -310,7 +310,7 @@ dns::Server::TryForwardPacket(
       }
       cancel = std::function<void()>();
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       if (replyWritten)
          req->reply.erase(req->reply.end()-1);
@@ -360,7 +360,7 @@ dns::Server::AddForwardServer(
 
       forwardServers.push_back(std::move(state));
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       ERROR_SET(err, nomem);
    }

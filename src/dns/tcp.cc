@@ -59,7 +59,7 @@ CreateTcp(
    {
       state = std::make_shared<State>();
    }
-   catch (std::bad_alloc)
+   catch (const std::bad_alloc&)
    {
       ERROR_SET(err, nomem);
    }
@@ -77,7 +77,7 @@ CreateTcp(
          {
             state->bufferedBytes.insert(state->bufferedBytes.end(), (char*)buf, (char*)buf + len);
          }
-         catch (std::bad_alloc)
+         catch (const std::bad_alloc&)
          {
             ERROR_SET(err, nomem);
          }
@@ -125,7 +125,7 @@ CreateTcp(
          {
             state->bufferedBytes.insert(state->bufferedBytes.end(), (char*)buf, (char*)buf+len);
          }
-         catch (std::bad_alloc)
+         catch (const std::bad_alloc&)
          {
             ERROR_SET(err, nomem);
          }
@@ -266,7 +266,7 @@ dns::Server::SendTcp(
          fd->Connect(buf, port);
          ERROR_CHECK(err);
       }
-      catch (std::bad_alloc)
+      catch (const std::bad_alloc&)
       {
          ERROR_SET(err, nomem);
       }
