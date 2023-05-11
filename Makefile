@@ -8,6 +8,9 @@ MAKEFILES_ROOT?=submodules/makefiles/
 LIBCOMMON_ROOT?=submodules/common/
 LIBPOLLSTER_ROOT?=submodules/pollster/
 LIBSQLITEWRAPPER_ROOT?=submodules/sqlitewrapper/
+LDFLAGS += -L$(LIBSQLITEWRAPPER_ROOT) -lsqlitewrapper
+LDFLAGS += -L$(LIBPOLLSTER_ROOT) -lpollster
+LDFLAGS += -L$(LIBCOMMON_ROOT) -lcommon
 -include ${LIBPOLLSTER_ROOT}Makefile.inc
 -include ${LIBSQLITEWRAPPER_ROOT}Makefile.inc
 CFLAGS += -Iinclude \
@@ -15,9 +18,6 @@ CFLAGS += -Iinclude \
           -I$(LIBPOLLSTER_ROOT)include \
           -I$(LIBSQLITEWRAPPER_ROOT)include
 CXXFLAGS += $(CFLAGS)
-LDFLAGS += -L$(LIBSQLITEWRAPPER_ROOT) -lsqlitewrapper
-LDFLAGS += -L$(LIBPOLLSTER_ROOT) -lpollster
-LDFLAGS += -L$(LIBCOMMON_ROOT) -lcommon
 
 SRCFILES += \
    src/config.cc \
@@ -47,6 +47,7 @@ $(APPNAME)$(EXESUFFIX): $(LIBCOMMON) $(LIBPOLLSTER) $(LIBSQLITEWRAPPER) $(OBJS) 
 clean:
 	rm -f $(LIBCOMMON) $(LIBCOMMON_OBJS)
 	rm -f $(LIBPOLLSTER) $(LIBPOLLSTER_OBJS)
+	rm -f $(LIBSQLITEWRAPPER) $(LIBSQLITEWRAPPER_OBJS)
 	rm -f $(APPNAME)$(EXESUFFIX) $(OBJS) $(XP_SUPPORT_OBJS)
 	rm -f *.debug
 
