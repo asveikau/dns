@@ -24,6 +24,10 @@ Building happens via [the makefiles submodule][1].
     $ git submodule update --init
     $ make                             # or "gmake" on some platforms, like BSD
 
+On Windows, you may also need to:
+
+    $ cd submodules/sqlitewrapper ; git submodule update --init
+
 On Unix, the project builds with g++ 8.0 or higher (7 and earlier won't work!)
 or clang++.
 

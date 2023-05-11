@@ -6,10 +6,11 @@
  copyright notice and this permission notice appear in all copies.
 */
 
+#include <pollster/socket.h>
+
 #include <dnsserver.h>
 #include <dnsmsg.h>
 
-#include <pollster/socket.h>
 #include <common/logger.h>
 
 dns::LocalEntry
