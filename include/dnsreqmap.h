@@ -12,6 +12,7 @@
 #include <assert.h>
 
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,7 @@ private:
       std::string name;
       Value value;
    };
+   std::shared_ptr<RequestMap<Value>*> weakThis;
 
    std::map<uint16_t, std::vector<RequestData>> map;
 
@@ -64,6 +66,12 @@ private:
    }
 
 public:
+
+   ~RequestMap()
+   {
+      if (weakThis)
+         *weakThis = nullptr;
+   }
 
    Value *
    Lookup(const struct sockaddr *addr, const Message &msg)
@@ -168,11 +176,19 @@ public:
       auto id = msg.Header->Id.Get();
       auto type = msg.Questions[0].Attrs->Type.Get();
       const auto &name = msg.Questions[0].Name;
-      return [this, id, sockaddr, type, name] () -> void
+
+      if (!weakThis.get())
+         weakThis = std::make_shared<RequestMap*>(this);
+      auto weakThis_ = weakThis;
+
+      return [weakThis_, id, sockaddr, type, name] () -> void
       {
-         auto p = Lookup(sockaddr.data(), sockaddr.size(), id, type, name);
+         auto t = *weakThis_;
+         if (!t)
+            return;
+         auto p = t->Lookup(sockaddr.data(), sockaddr.size(), id, type, name);
          if (p)
-            Remove(id, p);
+            t->Remove(id, p);
       };
    }
 
