@@ -119,6 +119,7 @@ dns::Server::TryCache(
       MessageWriter response;
 
       response.Header->Id = msg.Header->Id;
+      response.Header->Response = 1;
 
       auto q = response.AddQuestion(err);
       ERROR_CHECK(err);
@@ -165,21 +166,24 @@ dns::Server::TryCache(
             break;
          }
 
-         auto answer = response.AddAnswer((uint16_t)blob.size(), err);
-         ERROR_CHECK(err);
+         if (blob.size())
+         {
+            auto answer = response.AddAnswer((uint16_t)blob.size(), err);
+            ERROR_CHECK(err);
 
-         try
-         {
-            answer->Name = msg.Questions[0].Name;
+            try
+            {
+               answer->Name = msg.Questions[0].Name;
+            }
+            catch (const std::bad_alloc &)
+            {
+               ERROR_SET(err, nomem);
+            }
+            answer->Attrs->Type.Put(type);
+            answer->Attrs->Class.Put(class_);
+            answer->Attrs->Ttl.Put(time + ttl - current_time);
+            memcpy(answer->Attrs->Data, blob.data(), blob.size());
          }
-         catch (const std::bad_alloc &)
-         {
-            ERROR_SET(err, nomem);
-         }
-         answer->Attrs->Type.Put(type);
-         answer->Attrs->Class.Put(class_);
-         answer->Attrs->Ttl.Put(time + ttl - current_time);
-         memcpy(answer->Attrs->Data, blob.data(), blob.size());
       } while (stmt.step(err));
       ERROR_CHECK(err);
 
